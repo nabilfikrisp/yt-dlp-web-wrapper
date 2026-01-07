@@ -1,18 +1,65 @@
-import { Download, Languages, Monitor, Music } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Languages,
+  Loader,
+  Monitor,
+  Music,
+  XIcon,
+} from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { formatBitToMB } from "@/flows/input-yt-url/client-utils";
 import type { VideoMetadata } from "@/flows/input-yt-url/server-utils";
+import { downloadVideoAction } from "../server-action";
 import { SelectionBadge } from "./atomic/selection-badge.ui";
 import { SelectionButton } from "./atomic/selection-button.ui";
 import { TabTrigger } from "./atomic/tab-trigger.ui";
 import { VideoHeader } from "./atomic/video-header.ui";
 import { useMetadataManager } from "./use-meta-data-manager.hooks";
 
-export function MetadataDisplay({ data }: { data: VideoMetadata }) {
+export function MetadataDisplay({
+  data,
+  videoUrl,
+}: {
+  data: VideoMetadata;
+  videoUrl: string;
+}) {
   const { state, actions, data: view } = useMetadataManager(data);
 
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handleDownloadClick() {
+    setStatus("loading");
+    setErrorMessage(null);
+
+    try {
+      const res = await downloadVideoAction({
+        data: {
+          url: videoUrl,
+          videoFormatId: state.selectedVideo,
+          audioFormatId: state.selectedAudio,
+          subId: state.selectedSub,
+        },
+      });
+
+      if (res.success) {
+        setStatus("success");
+      } else {
+        setStatus("error");
+        setErrorMessage(res.message);
+      }
+    } catch (_err) {
+      setStatus("error");
+      setErrorMessage("Engine timeout: The server took too long to respond.");
+    }
+  }
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <VideoHeader data={data} />
@@ -31,12 +78,14 @@ export function MetadataDisplay({ data }: { data: VideoMetadata }) {
             label="Audio"
             active={!!state.selectedAudio}
           />
-          <TabTrigger
-            value="subs"
-            icon={<Languages className="w-4 h-4" />}
-            label="Subs"
-            active={!!state.selectedSub}
-          />
+          {view.sortedSubs.length > 0 && (
+            <TabTrigger
+              value="subs"
+              icon={<Languages className="w-4 h-4" />}
+              label="Subs"
+              active={!!state.selectedSub}
+            />
+          )}
         </TabsList>
 
         <div className="mt-2 border rounded-xl bg-card/30 backdrop-blur-sm overflow-hidden">
@@ -126,17 +175,79 @@ export function MetadataDisplay({ data }: { data: VideoMetadata }) {
           </div>
         </div>
 
+        {/* INTEGRATED STATUS BANNER (Handles Loading, Success, and Error) */}
+        {status !== "idle" && (
+          <div
+            className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+              status === "loading"
+                ? "bg-muted/50 border-border text-muted-foreground"
+                : status === "success"
+                  ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+                  : "bg-destructive/10 border-destructive/20 text-destructive"
+            }`}
+          >
+            {/* Dynamic Icon */}
+            <div className="mt-0.5">
+              {status === "loading" && (
+                <Loader className="w-5 h-5 animate-spin text-primary" />
+              )}
+              {status === "success" && <CheckCircle2 className="w-5 h-5" />}
+              {status === "error" && <AlertCircle className="w-5 h-5" />}
+            </div>
+
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] leading-tight opacity-70">
+                {status === "loading" && "Server Task"}
+                {status === "success" && "Complete"}
+                {status === "error" && "System Halt"}
+              </p>
+              <p className="text-sm font-semibold mt-1">
+                {status === "loading" &&
+                  "Merging high-quality streams & writing to disk..."}
+                {status === "success" && "Video available in /storage folder."}
+                {status === "error" &&
+                  (errorMessage || "An unknown error occurred.")}
+              </p>
+            </div>
+
+            {/* Close button - only show if NOT loading */}
+            {status !== "loading" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setStatus("idle")}
+                className="h-8 w-8 -mr-2 -mt-1"
+              >
+                <XIcon className="w-4 h-4 opacity-50 hover:opacity-100" />
+              </Button>
+            )}
+          </div>
+        )}
+
         <Button
+          onClick={handleDownloadClick}
           disabled={
-            !state.selectedVideo && !state.selectedAudio && !state.selectedSub
+            status === "loading" ||
+            (!state.selectedVideo && !state.selectedAudio && !state.selectedSub)
           }
           size="lg"
-          className="w-full h-14 rounded-2xl gap-3 shadow-xl font-bold text-base"
+          variant={status === "error" ? "destructive" : "default"}
+          className="w-full h-14 rounded-2xl gap-3 shadow-xl font-bold text-base transition-all active:scale-[0.98]"
         >
-          <Download className="w-5 h-5" />
-          {!state.selectedVideo && !state.selectedAudio && !state.selectedSub
-            ? "Select something"
-            : "Download Selection"}
+          {status === "loading" ? (
+            "Working..."
+          ) : status === "success" ? (
+            "Start New Download"
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              {!state.selectedVideo &&
+              !state.selectedAudio &&
+              !state.selectedSub
+                ? "Select Format"
+                : "Extract Video"}
+            </>
+          )}
         </Button>
       </div>
     </div>
