@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Info, Loader2, XIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
-import { MetadataDisplay } from "@/components/meta-data-display";
+import { MetadataDisplay } from "@/flows/input-yt-url/component/meta-data-display.ui";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

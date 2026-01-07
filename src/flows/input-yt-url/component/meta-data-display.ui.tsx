@@ -1,0 +1,144 @@
+import { Download, Languages, Monitor, Music } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
+import { formatBitToMB } from "@/flows/input-yt-url/client-utils";
+import type { VideoMetadata } from "@/flows/input-yt-url/server-utils";
+import { SelectionBadge } from "./atomic/selection-badge.ui";
+import { SelectionButton } from "./atomic/selection-button.ui";
+import { TabTrigger } from "./atomic/tab-trigger.ui";
+import { VideoHeader } from "./atomic/video-header.ui";
+import { useMetadataManager } from "./use-meta-data-manager.hooks";
+
+export function MetadataDisplay({ data }: { data: VideoMetadata }) {
+  const { state, actions, data: view } = useMetadataManager(data);
+
+  return (
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <VideoHeader data={data} />
+
+      <Tabs defaultValue="video" className="w-full">
+        <TabsList className="w-full h-11 rounded-xl bg-muted/50 p-1">
+          <TabTrigger
+            value="video"
+            icon={<Monitor className="w-4 h-4" />}
+            label="Video"
+            active={!!state.selectedVideo}
+          />
+          <TabTrigger
+            value="audio"
+            icon={<Music className="w-4 h-4" />}
+            label="Audio"
+            active={!!state.selectedAudio}
+          />
+          <TabTrigger
+            value="subs"
+            icon={<Languages className="w-4 h-4" />}
+            label="Subs"
+            active={!!state.selectedSub}
+          />
+        </TabsList>
+
+        <div className="mt-2 border rounded-xl bg-card/30 backdrop-blur-sm overflow-hidden">
+          {/* Search bar removed from here */}
+
+          <ScrollArea className="h-72">
+            <div className="p-2 space-y-1.5">
+              <TabsContent
+                value="video"
+                className="m-0 space-y-1.5 outline-none"
+              >
+                {view.sortedVideo.map((f) => (
+                  <SelectionButton
+                    key={f.formatId}
+                    isSelected={state.selectedVideo === f.formatId}
+                    onClick={() => actions.toggleVideo(f.formatId)}
+                    title={f.resolution}
+                    desc={`${f.ext.toUpperCase()} Quality`}
+                    rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
+                  />
+                ))}
+              </TabsContent>
+
+              <TabsContent
+                value="audio"
+                className="m-0 space-y-1.5 outline-none"
+              >
+                {view.sortedAudio.map((f) => (
+                  <SelectionButton
+                    key={f.formatId}
+                    isSelected={state.selectedAudio === f.formatId}
+                    onClick={() => actions.toggleAudio(f.formatId)}
+                    title={f.resolution.split(",")[0]}
+                    desc={`${f.ext.toUpperCase()} Audio`}
+                    rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
+                  />
+                ))}
+              </TabsContent>
+
+              <TabsContent
+                value="subs"
+                className="m-0 space-y-1.5 outline-none"
+              >
+                {view.sortedSubs.map((sub) => (
+                  <SelectionButton
+                    key={sub.id}
+                    isSelected={state.selectedSub === sub.id}
+                    onClick={() => actions.toggleSub(sub.id)}
+                    title={sub.id.toUpperCase()}
+                    desc={sub.isAuto ? "Auto-Generated" : "Official Subtitle"}
+                    rightLabel={sub.isAuto ? "AI" : "HQ"}
+                  />
+                ))}
+              </TabsContent>
+            </div>
+          </ScrollArea>
+        </div>
+      </Tabs>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 h-14">
+          <SelectionBadge
+            icon={<Monitor className="w-4 h-4" />}
+            label={view.summary.videoLabel}
+            size={view.summary.videoSize}
+            active={!!state.selectedVideo}
+          />
+          <SelectionBadge
+            icon={<Music className="w-4 h-4" />}
+            label={view.summary.audioLabel}
+            size={view.summary.audioSize}
+            active={!!state.selectedAudio}
+          />
+          <SelectionBadge
+            icon={<Languages className="w-4 h-4" />}
+            label={view.summary.subLabel}
+            active={!!state.selectedSub}
+          />
+
+          <div className="flex flex-col items-center justify-center h-full px-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex-1">
+            <span className="text-[10px] uppercase font-black text-primary leading-none mb-1">
+              Total
+            </span>
+            <span className="text-sm font-mono font-black">
+              {view.summary.totalMB}
+            </span>
+          </div>
+        </div>
+
+        <Button
+          disabled={
+            !state.selectedVideo && !state.selectedAudio && !state.selectedSub
+          }
+          size="lg"
+          className="w-full h-14 rounded-2xl gap-3 shadow-xl font-bold text-base"
+        >
+          <Download className="w-5 h-5" />
+          {!state.selectedVideo && !state.selectedAudio && !state.selectedSub
+            ? "Select something"
+            : "Download Selection"}
+        </Button>
+      </div>
+    </div>
+  );
+}

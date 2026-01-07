@@ -1,0 +1,73 @@
+import { Check, Languages, Monitor } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+type SelectionButtonProps = {
+  isSelected: boolean;
+  onClick: () => void;
+  title: string;
+  desc: string;
+  rightLabel?: string | null;
+};
+
+export function SelectionButton({
+  isSelected,
+  onClick,
+  title,
+  desc,
+  rightLabel,
+}: SelectionButtonProps) {
+  return (
+    <Button
+      variant={isSelected ? "default" : "ghost"}
+      className={cn(
+        "w-full h-auto p-3 justify-between rounded-xl border-2 transition-all",
+        isSelected
+          ? "border-primary bg-primary shadow-md"
+          : "border-transparent",
+      )}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "p-2 rounded-lg",
+            isSelected ? "bg-white/20" : "bg-muted",
+          )}
+        >
+          {rightLabel === "AI" || rightLabel === "HQ" ? (
+            <Languages className="w-4 h-4" />
+          ) : (
+            <Monitor className="w-4 h-4" />
+          )}
+        </div>
+        <div className="flex flex-col items-start">
+          <span className="font-bold text-sm leading-none">{title}</span>
+          <span
+            className={cn(
+              "text-[10px] uppercase font-bold tracking-tight mt-1 opacity-70",
+              isSelected ? "text-white" : "text-muted-foreground",
+            )}
+          >
+            {desc}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        {rightLabel && (
+          <span
+            className={cn(
+              "text-[10px] font-mono font-bold px-2 py-0.5 rounded",
+              isSelected ? "bg-white text-primary" : "bg-muted text-foreground",
+            )}
+          >
+            {rightLabel ?? "-"}
+          </span>
+        )}
+        <div className="w-5 h-5 flex items-center justify-center">
+          {isSelected && <Check className="w-5 h-5 stroke-[3px]" />}
+        </div>
+      </div>
+    </Button>
+  );
+}
