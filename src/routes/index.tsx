@@ -1,137 +1,156 @@
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
+import { ArrowRight, Info, Loader2, XIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
+import { MetadataDisplay } from "@/components/meta-data-display";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { youtubeInputURLSchema } from "@/flows/input-yt-url/form-schema";
-import { getYTVersion, processURL } from "@/flows/input-yt-url/server-action";
+import {
+  getVideoMetadata,
+  getYTVersion,
+} from "@/flows/input-yt-url/server-action";
+import type { VideoMetadata } from "@/flows/input-yt-url/server-utils";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/")({
+  component: App,
+  loader: async () => {
+    const res = await getYTVersion();
+    return {
+      version: res.success ? res.data : null,
+    };
+  },
+});
 
 function App() {
-  const [version, setVersion] = useState<string>("Checking...");
-
-  const checkVersion = async () => {
-    console.log("Checking yt-dlp version...");
-    try {
-      const res = await getYTVersion();
-      setVersion(res.version);
-      console.log(res);
-    } catch (err) {
-      setVersion("Not Found");
-    }
-  };
-
-  const form = useForm({
-    defaultValues: {
-      url: "",
-    },
-    validators: {
-      onSubmit: youtubeInputURLSchema,
-    },
-    onSubmit: async ({ value }) => {
-      const toastId = toast.loading("Validating URL...");
-
-      try {
-        const result = await processURL({ data: value });
-        console.log(result);
-      } catch (error) {
-        if (error instanceof Error) {
-          toast.error(error.message, {
-            id: toastId,
-            description: "Please check your YouTube link and try again.",
-          });
-          return;
-        }
-
-        toast.error("Something went wrong", {
-          id: toastId,
-          description: "Please check your YouTube link and try again.",
-        });
-      }
-    },
-  });
+  const { version } = Route.useLoaderData();
+  const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
 
   const formId = useId();
 
-  return (
-    <div className="w-full min-h-screen flex flex-col">
-      <div className="w-full flex-1 max-w-4xl mx-auto px-5 py-10 flex flex-col justify-center items-center">
-        {/* FORM CARD */}
-        <Card className="w-full sm:max-w-md mx-auto ">
-          <CardHeader>
-            <CardTitle>YT DLP Web Wrapper</CardTitle>
-            <CardDescription>
-              Paste a YouTube video link to download it
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              id={formId}
-              onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
-              }}
-            >
-              <FieldGroup>
-                <form.Field
-                  name="url"
-                  children={(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched && !field.state.meta.isValid;
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Youtube Video URL
-                        </FieldLabel>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          aria-invalid={isInvalid}
-                          placeholder="https://www.youtube.com/watch?v=dQ....."
-                          autoComplete="off"
-                        />
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    );
-                  }}
-                />
-              </FieldGroup>
-            </form>
-          </CardContent>
-          <CardFooter>
-            <Field orientation="horizontal">
-              <Button type="button" variant="outline" onClick={checkVersion}>
-                Check Version
-              </Button>
-              <Button type="submit" form={formId}>
-                Submit
-              </Button>
-            </Field>
-          </CardFooter>
-        </Card>
+  const form = useForm({
+    defaultValues: { url: "" },
+    validators: { onSubmit: youtubeInputURLSchema },
+    onSubmit: async ({ value }) => {
+      const toastId = toast.loading("Analyzing video link...");
 
-        {/* INFO CARD */}
+      const res = await getVideoMetadata({ data: value });
+
+      if (!res.success) {
+        toast.error("Fetch Failed", {
+          id: toastId,
+          description: res.error || "Please try a different URL.",
+        });
+        return;
+      }
+
+      setMetadata(res.data);
+      toast.success("Success!", { id: toastId });
+    },
+  });
+
+  function reset() {
+    setMetadata(null);
+    form.reset();
+  }
+
+  return (
+    <div
+      className={`min-h-dvh w-full flex flex-col items-center bg-background px-6 transition-all duration-500 ease-in-out ${metadata ? "py-12" : "justify-center"}`}
+    >
+      <div className="w-full max-w-3xl flex flex-col gap-4">
+        {/* Header - Simple and fades when metadata is present */}
+        {!metadata && (
+          <div className="text-center space-y-2 animate-in fade-in zoom-in-95 duration-300">
+            <h1 className="text-4xl font-extrabold tracking-tight italic">
+              YT-DLP
+            </h1>
+            <p className="text-muted-foreground text-sm uppercase tracking-widest">
+              Web Extractor
+            </p>
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="relative group">
+          <form
+            id={formId}
+            onSubmit={(e) => {
+              e.preventDefault();
+              form.handleSubmit();
+            }}
+          >
+            <form.Field
+              name="url"
+              children={(field) => (
+                <Field>
+                  <div className="relative">
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="Paste YouTube link..."
+                      className="h-14 pl-6 pr-32 rounded-2xl border-2 transition-all focus-visible:ring-primary/20"
+                    />
+                    <div className="absolute right-1.5 top-1.5 bottom-1.5 flex gap-1">
+                      {metadata && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={reset}
+                          className="h-full rounded-xl px-3"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <form.Subscribe
+                        selector={(state) => [
+                          state.canSubmit,
+                          state.isSubmitting,
+                        ]}
+                        children={([canSubmit, isSubmitting]) => (
+                          <Button
+                            size="lg"
+                            disabled={!canSubmit || isSubmitting}
+                            className="h-full rounded-xl px-6 transition-all active:scale-95"
+                          >
+                            {isSubmitting ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <ArrowRight className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
+                      />
+                    </div>
+                  </div>
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.length > 0 && (
+                      <div className="flex items-center gap-2 text-destructive mt-2 px-2 animate-in slide-in-from-top-1">
+                        <Info className="w-3 h-3" />
+                        <FieldError
+                          className="text-xs font-medium"
+                          errors={field.state.meta.errors}
+                        />
+                      </div>
+                    )}
+                </Field>
+              )}
+            />
+          </form>
+        </div>
+
+        {/* Result View */}
+        {metadata && <MetadataDisplay data={metadata} />}
+
+        {/* Minimal Footer */}
+        {!metadata && (
+          <p className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
+            v{version} • stable engine
+          </p>
+        )}
       </div>
     </div>
   );
