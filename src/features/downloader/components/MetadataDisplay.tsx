@@ -179,7 +179,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           <div
             className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
               status === "loading"
-                ? "bg-muted/50 border-border text-muted-foreground"
+                ? "bg-muted/30 border-border/50 text-muted-foreground"
                 : status === "success"
                   ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
                   : "bg-destructive/10 border-destructive/20 text-destructive"
@@ -194,15 +194,22 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
             </div>
 
             <div className="flex-1">
-              <p className="text-xs font-black uppercase tracking-[0.2em] leading-tight opacity-70">
-                {status === "loading" && "Server Task"}
+              <p
+                className={`text-xs font-black uppercase tracking-wider leading-tight ${
+                  status === "loading"
+                    ? "opacity-70"
+                    : status === "success"
+                      ? "text-green-600 dark:text-green-400/80"
+                      : "text-destructive/80"
+                }`}
+              >
+                {status === "loading" && "Processing"}
                 {status === "success" && "Complete"}
-                {status === "error" && "System Halt"}
+                {status === "error" && "Error"}
               </p>
-              <p className="text-base font-semibold mt-1">
-                {status === "loading" &&
-                  "Merging high-quality streams & writing to disk..."}
-                {status === "success" && "Video available in /storage folder."}
+              <p className="text-sm font-semibold mt-1">
+                {status === "loading" && "Merging streams & saving to disk..."}
+                {status === "success" && "Video saved to /storage folder"}
                 {status === "error" &&
                   (errorMessage || "An unknown error occurred.")}
               </p>
@@ -229,10 +236,10 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           }
           size="lg"
           variant={status === "error" ? "destructive" : "default"}
-          className="w-full h-14 rounded-2xl gap-3 shadow-xl font-bold text-base transition-all active:scale-[0.98]"
+          className="w-full h-14 rounded-2xl gap-3 shadow-lg shadow-primary/20 font-semibold text-base transition-all active:scale-[0.98]"
         >
           {status === "loading" ? (
-            "Working..."
+            "Processing..."
           ) : status === "success" ? (
             "Download Again"
           ) : (

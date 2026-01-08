@@ -17,15 +17,24 @@ export function SelectionBadge({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all h-full flex-1 min-w-0",
+        "flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all h-full flex-1 min-w-0",
         active
-          ? "bg-card border-border"
-          : "bg-muted/10 border-dashed opacity-40",
+          ? "bg-card border-border shadow-sm"
+          : "bg-muted/30 border-muted-foreground/20 hover:bg-muted/50 hover:border-muted-foreground/30 cursor-pointer",
       )}
     >
-      <div className={active ? "text-primary" : ""}>{icon}</div>
+      <div className={cn(active ? "text-primary" : "text-muted-foreground/60")}>
+        {icon}
+      </div>
       <div className="flex flex-col min-w-0">
-        <span className="text-xs font-bold leading-none truncate">{label}</span>
+        <span
+          className={cn(
+            "text-xs font-bold leading-none truncate",
+            active ? "text-foreground" : "text-muted-foreground/80",
+          )}
+        >
+          {label}
+        </span>
         {active && size && (
           <span className="text-xs font-mono text-muted-foreground mt-0.5">
             {size}

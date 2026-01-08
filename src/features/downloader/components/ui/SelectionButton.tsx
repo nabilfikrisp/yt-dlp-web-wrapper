@@ -24,15 +24,15 @@ export function SelectionButton({
         "w-full h-auto p-3 justify-between rounded-xl border-2 transition-all",
         isSelected
           ? "border-primary bg-primary shadow-md"
-          : "border-transparent",
+          : "border-transparent hover:border-border/50 hover:bg-accent/30",
       )}
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
         <div
           className={cn(
-            "p-2 rounded-lg",
-            isSelected ? "bg-white/20" : "bg-muted",
+            "p-2 rounded-lg transition-all",
+            isSelected ? "bg-white/20" : "bg-muted/70 hover:bg-muted",
           )}
         >
           {rightLabel === "AI" || rightLabel === "HQ" ? (
@@ -42,11 +42,18 @@ export function SelectionButton({
           )}
         </div>
         <div className="flex flex-col items-start">
-          <span className="font-bold text-sm leading-none">{title}</span>
           <span
             className={cn(
-              "text-xs uppercase font-bold tracking-tight mt-1 opacity-70",
-              isSelected ? "text-white" : "text-muted-foreground",
+              "font-bold text-sm leading-none",
+              isSelected ? "text-white" : "text-foreground",
+            )}
+          >
+            {title}
+          </span>
+          <span
+            className={cn(
+              "text-xs uppercase font-bold tracking-tight mt-1",
+              isSelected ? "text-white/80" : "text-muted-foreground",
             )}
           >
             {desc}

@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { Play, User } from "lucide-react";
 import type { VideoMetadata } from "../../types/video-metadata.types";
 import { formatDuration } from "../../utils/format.utils";
 
@@ -15,6 +15,13 @@ export function VideoHeader({ data }: VideoHeaderProps) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           alt={data.title}
         />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="bg-white/90 backdrop-blur-sm p-2.5 rounded-full shadow-lg">
+              <Play className="w-5 h-5 text-foreground fill-foreground" />
+            </div>
+          </div>
+        </div>
         <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-md text-xs px-2 py-0.5 rounded-md text-white font-black tracking-wider">
           {data.duration ? formatDuration(data.duration) : "-"}
         </div>

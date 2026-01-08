@@ -541,7 +541,7 @@ npx tsc --noEmit      # TypeScript check only
 - **Feature components**: `components/`
 - **Server code**: `server/`
 - **Shared code**: `shared/`
-- **Routes**: `app/routes/`
+- **Routes**: `src/routes/`
 
 ## Contact & Resources
 
