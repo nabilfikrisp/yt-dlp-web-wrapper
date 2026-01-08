@@ -7,7 +7,7 @@ import {
   handleServerError,
   parseYtDlpJson,
   runYtDlp,
-  type VideoMetadata
+  type VideoMetadata,
 } from "./server-utils";
 
 type ServerResponse<T> = {
@@ -71,11 +71,9 @@ const downloadSchema = z.object({
 
 export const downloadVideoAction = createServerFn({ method: "POST" })
   .inputValidator(downloadSchema)
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<ServerResponse<string>> => {
     console.log(`[Terminal] 📥 Starting download process...`);
 
-    // 1. Define and Ensure Storage Path
-    // path.resolve ensures we are looking at the root /storage of your project
     const storagePath = path.resolve("storage");
 
     try {
@@ -84,11 +82,8 @@ export const downloadVideoAction = createServerFn({ method: "POST" })
       console.error("Could not create storage directory", err);
     }
 
-    // 2. Construct the output template
-    // %(title)s.%(ext)s is yt-dlp syntax for the filename
     const outputPath = path.join(storagePath, "%(title)s.%(ext)s");
 
-    // 3. Prepare Arguments
     const formatSelection = [data.videoFormatId, data.audioFormatId]
       .filter(Boolean)
       .join("+");
@@ -97,7 +92,7 @@ export const downloadVideoAction = createServerFn({ method: "POST" })
       "-f",
       formatSelection || "best",
       "-o",
-      outputPath, // Tell yt-dlp to save in our storage folder
+      outputPath,
       "--no-playlist",
       data.url,
     ];
@@ -107,16 +102,15 @@ export const downloadVideoAction = createServerFn({ method: "POST" })
     }
 
     try {
-      // runYtDlp will now execute with the -o flag pointing to ./storage
       await runYtDlp(args);
 
       console.log(`[Terminal] ✅ Download complete: Saved to ${storagePath}`);
       return {
         success: true,
-        message: "Video saved to server storage folder.",
+        data: "Video saved to server storage folder.",
+        error: null,
       };
-    } catch (error) {
-      console.error("[Terminal] ❌ Download failed", error);
-      throw new Error("Failed to process download");
+    } catch (error: unknown) {
+      return handleServerError(error);
     }
   });

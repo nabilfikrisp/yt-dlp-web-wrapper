@@ -53,7 +53,7 @@ export function MetadataDisplay({
         setStatus("success");
       } else {
         setStatus("error");
-        setErrorMessage(res.message);
+        setErrorMessage(res.error);
       }
     } catch (_err) {
       setStatus("error");
@@ -166,7 +166,7 @@ export function MetadataDisplay({
           />
 
           <div className="flex flex-col items-center justify-center h-full px-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex-1">
-            <span className="text-[10px] uppercase font-black text-primary leading-none mb-1">
+            <span className="text-xs uppercase font-black text-primary leading-none mb-1">
               Total
             </span>
             <span className="text-sm font-mono font-black">
@@ -196,12 +196,12 @@ export function MetadataDisplay({
             </div>
 
             <div className="flex-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] leading-tight opacity-70">
+              <p className="text-xs font-black uppercase tracking-[0.2em] leading-tight opacity-70">
                 {status === "loading" && "Server Task"}
                 {status === "success" && "Complete"}
                 {status === "error" && "System Halt"}
               </p>
-              <p className="text-sm font-semibold mt-1">
+              <p className="text-base font-semibold mt-1">
                 {status === "loading" &&
                   "Merging high-quality streams & writing to disk..."}
                 {status === "success" && "Video available in /storage folder."}
