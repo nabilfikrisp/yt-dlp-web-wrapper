@@ -125,6 +125,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
 
   function cancelDownload() {
     controller?.abort();
+    resetStreamResult();
   }
 
   function resetStreamResult() {
