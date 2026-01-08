@@ -19,7 +19,7 @@ export function SelectionBadge({
       className={cn(
         "flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-300 h-full flex-1 min-w-0",
         active
-          ? "bg-gradient-to-br from-card to-card/50 border-border shadow-md shadow-primary/5"
+          ? "bg-linear-to-br from-card to-card/50 border-border shadow-md shadow-primary/5"
           : "bg-muted/20 border-muted-foreground/15 hover:bg-muted/40 hover:border-muted-foreground/25 hover:shadow-sm cursor-pointer",
       )}
     >

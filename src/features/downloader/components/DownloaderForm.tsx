@@ -50,7 +50,7 @@ export function DownloaderForm({
             children={(field) => (
               <Field>
                 <div className="relative shadow-xl shadow-primary/10 group-hover:shadow-primary/20 transition-all duration-300">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <Input
                     id={field.name}
                     value={field.state.value}
@@ -81,7 +81,7 @@ export function DownloaderForm({
                           size="lg"
                           type="submit"
                           disabled={!canSubmit || submitting || isSubmitting}
-                          className="h-full rounded-xl px-7 transition-all duration-200 active:scale-[0.96] font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 bg-primary hover:bg-primary/90"
+                          className="h-full aspect-square rounded-xl transition-all duration-200 active:scale-[0.96] font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 bg-primary hover:bg-primary/90"
                         >
                           {submitting || isSubmitting ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -112,7 +112,7 @@ export function DownloaderForm({
       </div>
 
       {error && !isSubmitting && (
-        <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-destructive/5 to-destructive/10 border border-destructive/20 backdrop-blur-sm animate-in fade-in slide-in-from-top-1">
+        <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-linear-to-r from-destructive/5 to-destructive/10 border border-destructive/20 backdrop-blur-sm animate-in fade-in slide-in-from-top-1">
           <div className="mt-0.5 bg-destructive/15 p-1.5 rounded-lg border border-destructive/20">
             <Info className="w-3.5 h-3.5 text-destructive" />
           </div>

@@ -1,51 +1,25 @@
 import { useMemo, useState } from "react";
 import type { VideoMetadata } from "../types/video-metadata.types";
 import { formatBitToMB } from "../utils/format.utils";
+import { sortByFilesize, sortSubtitles } from "../utils/sort.utils";
 
 export function useMetadataManager(data: VideoMetadata) {
+  const sortedVideo = sortByFilesize(data.videoFormats);
+  const sortedAudio = sortByFilesize(data.audioFormats);
+  const sortedSubs = sortSubtitles(data.subtitles);
+
   const [selectedVideo, setSelectedVideo] = useState<string | null>(
-    [...data.videoFormats].sort(
-      (a, b) => (b.filesize || 0) - (a.filesize || 0),
-    )[0]?.formatId || null,
+    sortedVideo[0]?.formatId || null,
   );
   const [selectedAudio, setSelectedAudio] = useState<string | null>(
-    [...data.audioFormats].sort(
-      (a, b) => (b.filesize || 0) - (a.filesize || 0),
-    )[0]?.formatId || null,
+    sortedAudio[0]?.formatId || null,
   );
   const [selectedSub, setSelectedSub] = useState<string | null>(
-    data.subtitles.find((s) => !s.isAuto && s.id.toLowerCase().startsWith("en"))
+    sortedSubs.find((s) => !s.isAuto && s.id.toLowerCase().startsWith("en"))
       ?.id ||
-      data.subtitles[0]?.id ||
+      sortedSubs[0]?.id ||
       null,
   );
-
-  const sortedVideo = useMemo(
-    () =>
-      [...data.videoFormats].sort(
-        (a, b) => (b.filesize || 0) - (a.filesize || 0),
-      ),
-    [data.videoFormats],
-  );
-
-  const sortedAudio = useMemo(
-    () =>
-      [...data.audioFormats].sort(
-        (a, b) => (b.filesize || 0) - (a.filesize || 0),
-      ),
-    [data.audioFormats],
-  );
-
-  const sortedSubs = useMemo(() => {
-    return [...data.subtitles].sort((a, b) => {
-      if (a.isAuto !== b.isAuto) return a.isAuto ? 1 : -1;
-      const aIsEn = a.id.toLowerCase().startsWith("en");
-      const bIsEn = b.id.toLowerCase().startsWith("en");
-      if (aIsEn && !bIsEn) return -1;
-      if (!aIsEn && bIsEn) return 1;
-      return a.id.localeCompare(b.id);
-    });
-  }, [data.subtitles]);
 
   const summary = useMemo(() => {
     const v = data.videoFormats.find((f) => f.formatId === selectedVideo);

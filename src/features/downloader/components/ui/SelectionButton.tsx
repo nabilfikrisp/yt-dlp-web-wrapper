@@ -23,7 +23,7 @@ export function SelectionButton({
       className={cn(
         "w-full h-auto p-3 justify-between rounded-xl border-2 transition-all duration-300 group",
         isSelected
-          ? "border-primary bg-gradient-to-br from-primary to-primary/90 shadow-lg shadow-primary/25"
+          ? "border-primary bg-linear-to-br from-primary to-primary/90 shadow-lg shadow-primary/25"
           : "border-transparent hover:border-border/50 hover:bg-accent/30 hover:shadow-md",
       )}
       onClick={onClick}

@@ -12,7 +12,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { downloadVideoAction } from "@/server/actions/downloader.actions";
+import {
+  downloadVideoAction,
+  streamDownloadVideoAction,
+} from "@/server/actions/downloader.actions";
 import { useMetadataManager } from "../hooks/useMetadataManager";
 import type { VideoMetadata } from "../types/video-metadata.types";
 import { formatBitToMB } from "../utils/format.utils";
@@ -25,6 +28,33 @@ interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
 }
+type StreamProgress = {
+  type: "progress";
+  data: number;
+  raw: string;
+  error: null;
+};
+
+type StreamSuccess = {
+  type: "success";
+  data: string;
+  raw: string;
+  error: null;
+};
+
+type StreamError = {
+  type: "error";
+  data: null;
+  raw: string;
+  error: string;
+};
+
+type StreamIdle = {
+  type: "idle";
+  data: null;
+  raw: string;
+  error: null;
+};
 
 export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   const { state, actions, data: view } = useMetadataManager(data);
@@ -33,6 +63,14 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [streamResult, setStreamResult] = useState<
+    StreamIdle | StreamProgress | StreamError | StreamSuccess
+  >({
+    type: "idle",
+    data: null,
+    raw: "",
+    error: null,
+  });
 
   async function handleDownloadClick() {
     setStatus("loading");
@@ -59,6 +97,29 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       setErrorMessage(
         err instanceof Error ? err.message : "An unexpected error occurred.",
       );
+    }
+  }
+
+  async function streamDownload() {
+    try {
+      for await (const update of await streamDownloadVideoAction({
+        data: {
+          url: videoUrl,
+          videoFormatId: state.selectedVideo,
+          audioFormatId: state.selectedAudio,
+          subId: state.selectedSub,
+        },
+      })) {
+        setStreamResult(update);
+      }
+    } catch (error) {
+      setStatus("error");
+      setStreamResult({
+        type: "error",
+        data: null,
+        raw: "",
+        error: error instanceof Error ? error.message : "",
+      });
     }
   }
 
@@ -258,6 +319,17 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
             </>
           )}
         </Button>
+
+        <Button onClick={streamDownload}>Stream Download</Button>
+        {streamResult.type !== "idle" && (
+          <div>
+            simple stream banner
+            <div>Stream Type: {streamResult.type}</div>
+            <div>Stream Data: {streamResult.data}</div>
+            <div>Stream Raw: {streamResult.raw}</div>
+            <div>Stream Error: {streamResult.error}</div>
+          </div>
+        )}
       </div>
     </div>
   );

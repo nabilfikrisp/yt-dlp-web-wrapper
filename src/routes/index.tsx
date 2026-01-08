@@ -52,6 +52,7 @@ function DownloaderPage() {
     setIsSubmitting(false);
   };
 
+  console.log(metadata);
   return (
     <div
       className={`min-h-dvh w-full flex flex-col items-center px-6 transition-all duration-500 ease-in-out ${metadata ? "py-8" : "justify-center"}`}
