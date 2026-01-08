@@ -103,6 +103,10 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   }
 
   async function streamDownload() {
+    if (controller) {
+      controller.abort();
+    }
+
     const ctrl = new AbortController();
     setController(ctrl);
 
