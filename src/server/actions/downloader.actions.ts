@@ -1,26 +1,29 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createServerFn } from "@tanstack/react-start";
-import z from "zod";
-import { youtubeInputURLSchema } from "./form-schema";
-import {
-  handleServerError,
-  parseYtDlpJson,
-  runYtDlp,
-  type VideoMetadata,
-} from "./server-utils";
+import * as z from "zod";
+import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
+import type { ServerResponse } from "@/shared/types/api.types";
+import { parseYtDlpJson } from "../services/downloader.service";
+import { runYtDlp } from "../services/yt-dlp.service";
+import { handleServerError } from "../utils/error.utils";
 
-type ServerResponse<T> = {
-  success: boolean;
-  data: T | null;
-  error: string | null;
-};
-
-export const getVideoMetadata = createServerFn({ method: "POST" })
-  .inputValidator(youtubeInputURLSchema)
+export const getVideoMetadataAction = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      url: z.string(),
+    }),
+  )
   .handler(async ({ data }): Promise<ServerResponse<VideoMetadata>> => {
     console.log(`[Terminal] 🚀 Fetching video metadata...`);
     try {
+      await runYtDlp([
+        "--dump-json",
+        "--skip-download",
+        "--no-playlist",
+        data.url,
+      ]);
+
       const result = await runYtDlp([
         "--dump-json",
         "--skip-download",
@@ -42,7 +45,7 @@ export const getVideoMetadata = createServerFn({ method: "POST" })
     }
   });
 
-export const getYTVersion = createServerFn({ method: "POST" }).handler(
+export const getYTVersionAction = createServerFn({ method: "POST" }).handler(
   async (): Promise<ServerResponse<string>> => {
     console.log(`[Terminal] 🚀 Checking yt-dlp version...`);
 

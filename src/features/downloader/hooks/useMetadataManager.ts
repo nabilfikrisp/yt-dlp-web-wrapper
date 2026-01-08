@@ -1,14 +1,7 @@
 import { useMemo, useState } from "react";
-import { formatBitToMB } from "../client-utils";
-import type { VideoMetadata } from "../server-utils";
+import type { VideoMetadata } from "../types/video-metadata.types";
+import { formatBitToMB } from "../utils/format.utils";
 
-/**
- * A hook that manages the state and actions for video, audio, and subtitle metadata.
- * It takes in the video metadata and returns an object with the current state and actions to update the state.
- * The state includes the currently selected video, audio, and subtitle, as well as the search query for subtitles.
- * The actions include functions to toggle the selected video, audio, and subtitle, as well as a function to update the search query for subtitles.
- * The hook also returns an object with the sorted video and audio formats, the filtered subtitles based on the search query, and a summary of the selected formats with their sizes.
- */
 export function useMetadataManager(data: VideoMetadata) {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(
     [...data.videoFormats].sort(

@@ -1,17 +1,14 @@
 import type { ReactNode } from "react";
 import { TabsTrigger } from "@/components/ui/tabs";
 
-export function TabTrigger({
-  value,
-  icon,
-  label,
-  active,
-}: {
+interface TabTriggerProps {
   value: string;
   icon: ReactNode;
   label: string;
   active: boolean;
-}) {
+}
+
+export function TabTrigger({ value, icon, label, active }: TabTriggerProps) {
   return (
     <TabsTrigger
       value={value}

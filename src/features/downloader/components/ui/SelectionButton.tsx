@@ -2,13 +2,13 @@ import { Check, Languages, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type SelectionButtonProps = {
+interface SelectionButtonProps {
   isSelected: boolean;
   onClick: () => void;
   title: string;
   desc: string;
   rightLabel?: string | null;
-};
+}
 
 export function SelectionButton({
   isSelected,

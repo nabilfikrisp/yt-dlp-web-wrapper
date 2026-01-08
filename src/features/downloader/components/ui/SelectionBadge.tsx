@@ -1,17 +1,19 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+interface SelectionBadgeProps {
+  icon: ReactNode;
+  label: string;
+  size?: string | null;
+  active: boolean;
+}
+
 export function SelectionBadge({
   icon,
   label,
   size,
   active,
-}: {
-  icon: ReactNode;
-  label: string;
-  size?: string | null;
-  active: boolean;
-}) {
+}: SelectionBadgeProps) {
   return (
     <div
       className={cn(

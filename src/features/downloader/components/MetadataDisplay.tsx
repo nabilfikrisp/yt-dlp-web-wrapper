@@ -12,22 +12,21 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { formatBitToMB } from "@/flows/input-yt-url/client-utils";
-import type { VideoMetadata } from "@/flows/input-yt-url/server-utils";
-import { downloadVideoAction } from "../server-action";
-import { SelectionBadge } from "./atomic/selection-badge.ui";
-import { SelectionButton } from "./atomic/selection-button.ui";
-import { TabTrigger } from "./atomic/tab-trigger.ui";
-import { VideoHeader } from "./atomic/video-header.ui";
-import { useMetadataManager } from "./use-meta-data-manager.hooks";
+import { downloadVideoAction } from "@/server/actions/downloader.actions";
+import { useMetadataManager } from "../hooks/useMetadataManager";
+import type { VideoMetadata } from "../types/video-metadata.types";
+import { formatBitToMB } from "../utils/format.utils";
+import { SelectionBadge } from "./ui/SelectionBadge";
+import { SelectionButton } from "./ui/SelectionButton";
+import { TabTrigger } from "./ui/TabTrigger";
+import { VideoHeader } from "./ui/VideoHeader";
 
-export function MetadataDisplay({
-  data,
-  videoUrl,
-}: {
+interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
-}) {
+}
+
+export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   const { state, actions, data: view } = useMetadataManager(data);
 
   const [status, setStatus] = useState<
@@ -62,6 +61,7 @@ export function MetadataDisplay({
       );
     }
   }
+
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <VideoHeader data={data} />
@@ -91,8 +91,6 @@ export function MetadataDisplay({
         </TabsList>
 
         <div className="mt-2 border rounded-xl bg-card/30 backdrop-blur-sm overflow-hidden">
-          {/* Search bar removed from here */}
-
           <ScrollArea className="h-72">
             <div className="p-2 space-y-1.5">
               <TabsContent
@@ -177,7 +175,6 @@ export function MetadataDisplay({
           </div>
         </div>
 
-        {/* INTEGRATED STATUS BANNER (Handles Loading, Success, and Error) */}
         {status !== "idle" && (
           <div
             className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
@@ -188,7 +185,6 @@ export function MetadataDisplay({
                   : "bg-destructive/10 border-destructive/20 text-destructive"
             }`}
           >
-            {/* Dynamic Icon */}
             <div className="mt-0.5">
               {status === "loading" && (
                 <Loader className="w-5 h-5 animate-spin text-primary" />
@@ -212,7 +208,6 @@ export function MetadataDisplay({
               </p>
             </div>
 
-            {/* Close button - only show if NOT loading */}
             {status !== "loading" && (
               <Button
                 variant="ghost"
