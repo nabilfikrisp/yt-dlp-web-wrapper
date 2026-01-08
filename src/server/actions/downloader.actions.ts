@@ -3,7 +3,12 @@ import path from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import * as z from "zod";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
-import type { ServerResponse } from "@/shared/types/api.types";
+import type {
+  ServerResponse,
+  StreamProgress,
+  StreamSuccess,
+  StreamError,
+} from "@/shared/types/api.types";
 import { parseYtDlpJson } from "../services/downloader.service";
 import { runYtDlp, runYtDlpStream } from "../services/yt-dlp.service";
 import { handleServerError } from "../utils/error.utils";
@@ -122,26 +127,6 @@ export const downloadVideoAction = createServerFn({ method: "POST" })
     }
   });
 
-type StreamProgress = {
-  type: "progress";
-  data: number;
-  raw: string;
-  error: null;
-};
-
-type StreamSuccess = {
-  type: "success";
-  data: string;
-  raw: string;
-  error: null;
-};
-
-type StreamError = {
-  type: "error";
-  data: null;
-  raw: string;
-  error: string;
-};
 export const streamDownloadVideoAction = createServerFn({ method: "POST" })
   .inputValidator(downloadSchema)
   .handler(async function* ({

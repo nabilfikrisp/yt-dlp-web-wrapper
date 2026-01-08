@@ -18,6 +18,12 @@ import {
 } from "@/server/actions/downloader.actions";
 import { useMetadataManager } from "../hooks/useMetadataManager";
 import type { VideoMetadata } from "../types/video-metadata.types";
+import type {
+  StreamProgress,
+  StreamSuccess,
+  StreamError,
+  StreamIdle,
+} from "@/shared/types/api.types";
 import { formatBitToMB } from "../utils/format.utils";
 import { SelectionBadge } from "./ui/SelectionBadge";
 import { SelectionButton } from "./ui/SelectionButton";
@@ -28,33 +34,6 @@ interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
 }
-type StreamProgress = {
-  type: "progress";
-  data: number;
-  raw: string;
-  error: null;
-};
-
-type StreamSuccess = {
-  type: "success";
-  data: string;
-  raw: string;
-  error: null;
-};
-
-type StreamError = {
-  type: "error";
-  data: null;
-  raw: string;
-  error: string;
-};
-
-type StreamIdle = {
-  type: "idle";
-  data: null;
-  raw: string;
-  error: null;
-};
 
 export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   const { state, actions, data: view } = useMetadataManager(data);
