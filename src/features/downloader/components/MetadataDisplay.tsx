@@ -123,13 +123,22 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         setStreamResult(update);
       }
     } catch (error) {
-      setStatus("error");
-      setStreamResult({
-        type: "error",
-        data: null,
-        raw: "",
-        error: error instanceof Error ? error.message : "",
-      });
+      if (error instanceof Error && error.name === "AbortError") {
+        setStreamResult({
+          type: "idle",
+          data: null,
+          raw: "Download cancelled",
+          error: null,
+        });
+      } else {
+        setStatus("error");
+        setStreamResult({
+          type: "error",
+          data: null,
+          raw: "",
+          error: error instanceof Error ? error.message : "",
+        });
+      }
     } finally {
       setController(null);
     }

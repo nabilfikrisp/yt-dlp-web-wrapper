@@ -189,6 +189,16 @@ export const streamDownloadVideoAction = createServerFn({ method: "POST" })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
+      if (error instanceof Error && error.name === "AbortError") {
+        yield {
+          type: "error",
+          data: null,
+          raw: "Download cancelled",
+          error: "Download was cancelled",
+        };
+        return;
+      }
+
       if (message.includes("429") && data.subId) {
         console.log(message);
         yield {

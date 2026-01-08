@@ -55,7 +55,9 @@ export async function* runYtDlpStream(
 
   if (signal.aborted) {
     ls.kill();
-    throw new Error("Download cancelled");
+    const error = new Error("Download cancelled") as Error & { name: string };
+    error.name = "AbortError";
+    throw error;
   }
 
   signal.addEventListener("abort", () => {
