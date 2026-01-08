@@ -7,6 +7,7 @@ import {
   handleServerError,
   parseYtDlpJson,
   runYtDlp,
+  runYtDlpStream,
   type VideoMetadata,
 } from "./server-utils";
 
@@ -112,5 +113,57 @@ export const downloadVideoAction = createServerFn({ method: "POST" })
       };
     } catch (error: unknown) {
       return handleServerError(error);
+    }
+  });
+
+export const streamDownloadAction = createServerFn({
+  method: "POST",
+})
+  .inputValidator(downloadSchema)
+  .handler(async function* ({ data }) {
+    console.log(`[Terminal] 📥 Starting streaming download process...`);
+
+    const storagePath = path.resolve("storage");
+
+    try {
+      await fs.mkdir(storagePath, { recursive: true });
+    } catch (err) {
+      console.error("Could not create storage directory", err);
+    }
+
+    const outputPath = path.join(storagePath, "%(title)s.%(ext)s");
+
+    const formatSelection = [data.videoFormatId, data.audioFormatId]
+      .filter(Boolean)
+      .join("+");
+
+    const args = [
+      "-f",
+      formatSelection || "best",
+      "-o",
+      outputPath,
+      "--no-playlist",
+      data.url,
+    ];
+
+    if (data.subId) {
+      args.push("--write-subs", "--sub-langs", data.subId);
+    }
+
+    try {
+      console.log(`[Terminal] 🔄 Starting yt-dlp with args:`, args);
+      for await (const result of runYtDlpStream(args)) {
+        console.log(`[Streaming] Yielding:`, result);
+        yield result;
+      }
+
+      console.log(
+        `[Terminal] ✅ Streaming download complete: Saved to ${storagePath}`,
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      console.error(`[Terminal] 🚨 Error: ${message}`);
+      yield { type: "error", data: message };
     }
   });

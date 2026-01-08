@@ -34,6 +34,88 @@ export async function runYtDlp(args: string[]): Promise<string> {
   });
 }
 
+export async function* runYtDlpStream(
+  args: string[],
+): AsyncGenerator<{ type: "progress" | "complete"; data: string }> {
+  const isWindows = process.platform === "win32";
+  const command = isWindows ? "yt-dlp.exe" : "yt-dlp";
+
+  const ls = spawn(command, args);
+  let stderr = "";
+  const progressUpdates: string[] = [];
+  let isComplete = false;
+  let error: Error | null = null;
+
+  const extractProgress = (data: string): string | null => {
+    const progressMatch = data.match(/\[download\]\s+(\d+\.?\d*)%/);
+    if (progressMatch) {
+      console.log(`[Progress] Extracted: ${progressMatch[1]}%`);
+      return progressMatch[1];
+    }
+    return null;
+  };
+
+  const onStdoutData = (data: Buffer) => {
+    const chunk = data.toString();
+    const progress = extractProgress(chunk);
+    if (progress) {
+      progressUpdates.push(progress);
+    }
+  };
+
+  const onStderrData = (data: Buffer) => {
+    const chunk = data.toString();
+    stderr += chunk;
+    const progress = extractProgress(chunk);
+    if (progress) {
+      progressUpdates.push(progress);
+    }
+  };
+
+  ls.stdout.on("data", onStdoutData);
+  ls.stderr.on("data", onStderrData);
+
+  ls.on("close", (code) => {
+    ls.stdout.off("data", onStdoutData);
+    ls.stderr.off("data", onStderrData);
+    isComplete = true;
+    if (code !== 0) {
+      error = new Error(stderr.trim() || `yt-dlp exited with code ${code}`);
+    }
+  });
+
+  ls.on("error", (err) => {
+    isComplete = true;
+    error = new Error(`Failed to start yt-dlp: ${err.message}`);
+  });
+
+  let yieldedProgress = new Set<string>();
+
+  while (!isComplete || progressUpdates.length > 0) {
+    if (error) {
+      throw error;
+    }
+
+    while (progressUpdates.length > 0) {
+      const progress = progressUpdates.shift();
+      if (progress && !yieldedProgress.has(progress)) {
+        yieldedProgress.add(progress);
+        yield { type: "progress", data: progress };
+      }
+    }
+
+    if (!isComplete) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  yield { type: "complete", data: "Download complete!" };
+}
+
 /**
  * Standardizes server-side errors into a consistent response object.
  */

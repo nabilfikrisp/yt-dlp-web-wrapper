@@ -10,11 +10,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { formatBitToMB } from "@/flows/input-yt-url/client-utils";
 import type { VideoMetadata } from "@/flows/input-yt-url/server-utils";
-import { downloadVideoAction } from "../server-action";
+import { downloadVideoAction, streamDownloadAction } from "../server-action";
 import { SelectionBadge } from "./atomic/selection-badge.ui";
 import { SelectionButton } from "./atomic/selection-button.ui";
 import { TabTrigger } from "./atomic/tab-trigger.ui";
@@ -34,6 +35,12 @@ export function MetadataDisplay({
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [streamStatus, setStreamStatus] = useState<
+    "idle" | "streaming" | "complete" | "error"
+  >("idle");
+  const [streamProgress, setStreamProgress] = useState<number>(0);
+  const [streamError, setStreamError] = useState<string | null>(null);
 
   async function handleDownloadClick() {
     setStatus("loading");
@@ -58,6 +65,39 @@ export function MetadataDisplay({
     } catch (err) {
       setStatus("error");
       setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
+    }
+  }
+
+  async function handleStreamDownloadClick() {
+    setStreamStatus("streaming");
+    setStreamProgress(0);
+    setStreamError(null);
+
+    try {
+      const streamResult = await streamDownloadAction({
+        data: {
+          url: videoUrl,
+          videoFormatId: state.selectedVideo,
+          audioFormatId: state.selectedAudio,
+          subId: state.selectedSub,
+        },
+      });
+
+      for await (const result of streamResult) {
+        if (result.type === "progress") {
+          setStreamProgress(parseFloat(result.data));
+        } else if (result.type === "complete") {
+          setStreamStatus("complete");
+        } else if (result.type === "error") {
+          setStreamStatus("error");
+          setStreamError(result.data);
+        }
+      }
+    } catch (err) {
+      setStreamStatus("error");
+      setStreamError(
         err instanceof Error ? err.message : "An unexpected error occurred.",
       );
     }
@@ -246,6 +286,86 @@ export function MetadataDisplay({
               {!state.selectedVideo && !state.selectedAudio
                 ? "Select Video/Audio"
                 : "Extract Media"}
+            </>
+          )}
+        </Button>
+
+        {/* Streaming Download Section */}
+        {streamStatus !== "idle" && (
+          <div
+            className={`p-4 rounded-xl border flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+              streamStatus === "streaming"
+                ? "bg-primary/5 border-primary/20 text-primary"
+                : streamStatus === "complete"
+                  ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+                  : "bg-destructive/10 border-destructive/20 text-destructive"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5">
+                {streamStatus === "streaming" && (
+                  <Loader className="w-5 h-5 animate-spin" />
+                )}
+                {streamStatus === "complete" && (
+                  <CheckCircle2 className="w-5 h-5" />
+                )}
+                {streamStatus === "error" && (
+                  <AlertCircle className="w-5 h-5" />
+                )}
+              </div>
+
+              <div className="flex-1">
+                <p className="text-xs font-black uppercase tracking-[0.2em] leading-tight opacity-70">
+                  {streamStatus === "streaming" && "Streaming Progress"}
+                  {streamStatus === "complete" && "Complete"}
+                  {streamStatus === "error" && "System Halt"}
+                </p>
+                <p className="text-base font-semibold mt-1">
+                  {streamStatus === "streaming" &&
+                    `Downloading... ${streamProgress.toFixed(1)}%`}
+                  {streamStatus === "complete" &&
+                    "Video available in /storage folder."}
+                  {streamStatus === "error" &&
+                    (streamError || "An unknown error occurred.")}
+                </p>
+              </div>
+
+              {streamStatus !== "streaming" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setStreamStatus("idle")}
+                  className="h-8 w-8 -mr-2 -mt-1"
+                >
+                  <XIcon className="w-4 h-4 opacity-50 hover:opacity-100" />
+                </Button>
+              )}
+            </div>
+
+            {streamStatus === "streaming" && (
+              <Progress value={streamProgress} className="h-2 w-full" />
+            )}
+          </div>
+        )}
+
+        <Button
+          onClick={handleStreamDownloadClick}
+          disabled={
+            streamStatus === "streaming" ||
+            (!state.selectedVideo && !state.selectedAudio)
+          }
+          size="lg"
+          variant="outline"
+          className="w-full h-14 rounded-2xl gap-3 font-bold text-base transition-all active:scale-[0.98]"
+        >
+          {streamStatus === "streaming" ? (
+            "Streaming..."
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              {!state.selectedVideo && !state.selectedAudio
+                ? "Select Video/Audio"
+                : "Stream Download"}
             </>
           )}
         </Button>
