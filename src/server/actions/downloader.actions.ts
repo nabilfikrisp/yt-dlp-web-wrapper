@@ -146,6 +146,7 @@ export const streamDownloadVideoAction = createServerFn({ method: "POST" })
   .inputValidator(downloadSchema)
   .handler(async function* ({
     data,
+    signal,
   }): AsyncGenerator<StreamProgress | StreamSuccess | StreamError> {
     console.log(`[Terminal] 📥 Starting download process...`);
 
@@ -177,9 +178,7 @@ export const streamDownloadVideoAction = createServerFn({ method: "POST" })
     }
 
     try {
-      for await (const update of runYtDlpStream(args)) {
-        yield update;
-      }
+      yield* runYtDlpStream(args, signal);
 
       yield {
         type: "success",

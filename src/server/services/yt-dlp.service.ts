@@ -30,17 +30,37 @@ export async function runYtDlp(args: string[]): Promise<string> {
   });
 }
 
-export async function* runYtDlpStream(args: string[]): AsyncGenerator<{
-  type: "progress";
-  data: number;
-  raw: string;
-  error: null;
-}> {
+export async function* runYtDlpStream(
+  args: string[],
+  signal: AbortSignal,
+): AsyncGenerator<
+  | {
+      type: "progress";
+      data: number;
+      raw: string;
+      error: null;
+    }
+  | {
+      type: "error";
+      data: null;
+      raw: string;
+      error: string;
+    }
+> {
   const isWindows = process.platform === "win32";
   const command = isWindows ? "yt-dlp.exe" : "yt-dlp";
 
   const finalArgs = ["--newline", ...args];
   const ls = spawn(command, finalArgs);
+
+  if (signal.aborted) {
+    ls.kill();
+    throw new Error("Download cancelled");
+  }
+
+  signal.addEventListener("abort", () => {
+    ls.kill();
+  });
 
   const decoder = new TextDecoder();
 
@@ -51,23 +71,29 @@ export async function* runYtDlpStream(args: string[]): AsyncGenerator<{
 
   // THIS IS RAW
   // [download] 26.2% of 1.16GiB at 4.66MiB/s ETA 03:08
-  for await (const chunk of ls.stdout) {
-    const line = decoder.decode(chunk);
-    const match = line.match(/(\d+\.\d+)%/);
+  try {
+    for await (const chunk of ls.stdout) {
+      if (signal.aborted) break;
 
-    if (match) {
-      yield {
-        type: "progress",
-        data: parseFloat(match[1]),
-        raw: line.trim(),
-        error: null,
-      };
-    }
+      const line = decoder.decode(chunk);
+      const match = line.match(/(\d+\.\d+)%/);
 
-    if (errorOutput.includes("429")) {
-      ls.kill();
-      throw new Error("429");
+      if (match) {
+        yield {
+          type: "progress",
+          data: parseFloat(match[1]),
+          raw: line.trim(),
+          error: null,
+        };
+      }
+
+      if (errorOutput.includes("429")) {
+        ls.kill();
+        throw new Error("429");
+      }
     }
+  } finally {
+    ls.kill();
   }
 
   const exitCode = await new Promise((resolve) => ls.on("close", resolve));

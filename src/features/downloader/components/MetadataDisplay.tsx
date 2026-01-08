@@ -72,6 +72,8 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     error: null,
   });
 
+  const [controller, setController] = useState<AbortController | null>(null);
+
   async function handleDownloadClick() {
     setStatus("loading");
     setErrorMessage(null);
@@ -101,6 +103,9 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   }
 
   async function streamDownload() {
+    const ctrl = new AbortController();
+    setController(ctrl);
+
     try {
       for await (const update of await streamDownloadVideoAction({
         data: {
@@ -109,6 +114,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           audioFormatId: state.selectedAudio,
           subId: state.selectedSub,
         },
+        signal: ctrl.signal,
       })) {
         setStreamResult(update);
       }
@@ -120,7 +126,13 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         raw: "",
         error: error instanceof Error ? error.message : "",
       });
+    } finally {
+      setController(null);
     }
+  }
+
+  function cancelDownload() {
+    controller?.abort();
   }
 
   return (
@@ -320,15 +332,17 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           )}
         </Button>
 
-        <Button onClick={streamDownload}>Stream Download</Button>
-        {streamResult.type !== "idle" && (
+        {streamResult.type !== "idle" ? (
           <div>
             simple stream banner
             <div>Stream Type: {streamResult.type}</div>
             <div>Stream Data: {streamResult.data}</div>
             <div>Stream Raw: {streamResult.raw}</div>
             <div>Stream Error: {streamResult.error}</div>
+            <Button onClick={cancelDownload}>Cancel Download</Button>
           </div>
+        ) : (
+          <Button onClick={streamDownload}>Stream Download</Button>
         )}
       </div>
     </div>
