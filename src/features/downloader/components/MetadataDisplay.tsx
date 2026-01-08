@@ -63,11 +63,11 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   }
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <VideoHeader data={data} />
 
       <Tabs defaultValue="video" className="w-full">
-        <TabsList className="w-full h-11 rounded-xl bg-muted/50 p-1">
+        <TabsList className="w-full h-12 rounded-xl bg-muted/40 p-1 backdrop-blur-sm border border-border/50 shadow-sm">
           <TabTrigger
             value="video"
             icon={<Monitor className="w-4 h-4" />}
@@ -90,9 +90,9 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           )}
         </TabsList>
 
-        <div className="mt-2 border rounded-xl bg-card/30 backdrop-blur-sm overflow-hidden">
-          <ScrollArea className="h-72">
-            <div className="p-2 space-y-1.5">
+        <div className="mt-3 border rounded-xl bg-linear-to-b from-card/40 to-card/20 backdrop-blur-sm overflow-hidden shadow-sm">
+          <ScrollArea className="h-80">
+            <div className="p-3 space-y-2">
               <TabsContent
                 value="video"
                 className="m-0 space-y-1.5 outline-none"
@@ -145,8 +145,8 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         </div>
       </Tabs>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 h-14">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 h-16 p-1 rounded-xl bg-linear-to-r from-muted/30 to-muted/10 backdrop-blur-sm border border-border/30">
           <SelectionBadge
             icon={<Monitor className="w-4 h-4" />}
             label={view.summary.videoLabel}
@@ -165,11 +165,11 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
             active={!!state.selectedSub}
           />
 
-          <div className="flex flex-col items-center justify-center h-full px-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex-1">
+          <div className="flex flex-col items-center justify-center h-full px-4 rounded-xl border-2 border-primary/20 bg-linear-to-r from-primary/5 to-primary/10 flex-1 shadow-sm">
             <span className="text-xs uppercase font-black text-primary leading-none mb-1">
               Total
             </span>
-            <span className="text-sm font-mono font-black">
+            <span className="text-sm font-mono font-black text-foreground">
               {view.summary.totalMB}
             </span>
           </div>
@@ -236,15 +236,22 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           }
           size="lg"
           variant={status === "error" ? "destructive" : "default"}
-          className="w-full h-14 rounded-2xl gap-3 shadow-lg shadow-primary/20 font-semibold text-base transition-all active:scale-[0.98]"
+          className="w-full h-14 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group"
         >
+          <div className="absolute inset-0 bg-linear-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           {status === "loading" ? (
-            "Processing..."
+            <div className="flex items-center gap-2">
+              <Loader className="w-5 h-5 animate-spin" />
+              Processing...
+            </div>
           ) : status === "success" ? (
-            "Download Again"
+            <div className="flex items-center gap-2">
+              <Download className="w-5 h-5" />
+              Download Again
+            </div>
           ) : (
             <>
-              <Download className="w-5 h-5" />
+              <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform duration-300" />
               {!state.selectedVideo && !state.selectedAudio
                 ? "Select Video/Audio"
                 : "Extract Media"}
