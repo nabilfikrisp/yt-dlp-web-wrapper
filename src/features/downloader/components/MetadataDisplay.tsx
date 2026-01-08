@@ -127,6 +127,15 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     controller?.abort();
   }
 
+  function resetStreamResult() {
+    setStreamResult({
+      type: "idle",
+      data: null,
+      raw: "",
+      error: null,
+    });
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <VideoHeader data={data} />
@@ -324,17 +333,25 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           )}
         </Button>
 
-        {streamResult.type !== "idle" ? (
+        {streamResult.type === "idle" ? (
+          <Button onClick={streamDownload}>Stream Download</Button>
+        ) : (
           <div>
             simple stream banner
             <div>Stream Type: {streamResult.type}</div>
             <div>Stream Data: {streamResult.data}</div>
             <div>Stream Raw: {streamResult.raw}</div>
             <div>Stream Error: {streamResult.error}</div>
-            <Button onClick={cancelDownload}>Cancel Download</Button>
+            {streamResult.type === "progress" && (
+              <Button onClick={cancelDownload}>Cancel Download</Button>
+            )}
+            {streamResult.type === "success" && (
+              <Button onClick={resetStreamResult}>Close</Button>
+            )}
+            {streamResult.type === "error" && (
+              <Button onClick={resetStreamResult}>Close</Button>
+            )}
           </div>
-        ) : (
-          <Button onClick={streamDownload}>Stream Download</Button>
         )}
       </div>
     </div>
