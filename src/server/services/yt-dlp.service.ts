@@ -53,16 +53,24 @@ export async function* runYtDlpStream(
   const finalArgs = ["--newline", ...args];
   const ls = spawn(command, finalArgs);
 
+  const closePromise = new Promise<number | null>((resolve) => {
+    ls.on("close", (code) => resolve(code));
+  });
+
+  const abortHandler = () => {
+    ls.kill();
+  };
+
   if (signal.aborted) {
     ls.kill();
+    signal.removeEventListener("abort", abortHandler);
+    await closePromise;
     const error = new Error("Download cancelled") as Error & { name: string };
     error.name = "AbortError";
     throw error;
   }
 
-  signal.addEventListener("abort", () => {
-    ls.kill();
-  });
+  signal.addEventListener("abort", abortHandler);
 
   const decoder = new TextDecoder();
 
@@ -73,9 +81,14 @@ export async function* runYtDlpStream(
 
   // THIS IS RAW
   // [download] 26.2% of 1.16GiB at 4.66MiB/s ETA 03:08
+  let wasAborted = false;
+
   try {
     for await (const chunk of ls.stdout) {
-      if (signal.aborted) break;
+      if (signal.aborted) {
+        wasAborted = true;
+        break;
+      }
 
       const line = decoder.decode(chunk);
       const match = line.match(/(\d+\.\d+)%/);
@@ -98,7 +111,15 @@ export async function* runYtDlpStream(
     ls.kill();
   }
 
-  const exitCode = await new Promise((resolve) => ls.on("close", resolve));
+  const exitCode = await closePromise;
+  signal.removeEventListener("abort", abortHandler);
+
+  if (wasAborted) {
+    const error = new Error("Download cancelled") as Error & { name: string };
+    error.name = "AbortError";
+    throw error;
+  }
+
   if (exitCode !== 0 && !errorOutput.includes("429")) {
     throw new Error(errorOutput || `yt-dlp failed with code ${exitCode}`);
   }
