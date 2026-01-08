@@ -23,11 +23,9 @@ export function SelectionBadge({
     >
       <div className={active ? "text-primary" : ""}>{icon}</div>
       <div className="flex flex-col min-w-0">
-        <span className="text-[11px] font-bold leading-none truncate">
-          {label}
-        </span>
+        <span className="text-xs font-bold leading-none truncate">{label}</span>
         {active && size && (
-          <span className="text-[10px] font-mono text-muted-foreground mt-0.5">
+          <span className="text-xs font-mono text-muted-foreground mt-0.5">
             {size}
           </span>
         )}

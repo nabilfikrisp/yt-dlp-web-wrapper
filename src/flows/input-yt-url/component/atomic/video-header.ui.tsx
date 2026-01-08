@@ -20,7 +20,7 @@ export function VideoHeader({ data }: { data: VideoMetadata }) {
           alt={data.title}
         />
         {/* Duration Badge: Slightly larger and more readable */}
-        <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-md text-[10px] px-2 py-0.5 rounded-md text-white font-black tracking-wider">
+        <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-md text-xs px-2 py-0.5 rounded-md text-white font-black tracking-wider">
           {data.duration ? formatDuration(data.duration) : "-"}
         </div>
       </div>
@@ -33,8 +33,8 @@ export function VideoHeader({ data }: { data: VideoMetadata }) {
 
         <div className="flex items-center gap-3 text-muted-foreground">
           <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full border border-border/50">
-            <User className="w-3 h-3 text-primary" />
-            <span className="text-[11px] font-bold truncate max-w-30">
+            <User className="w-4 h-4 text-primary" />
+            <span className="text-xs font-bold truncate max-w-30">
               {data.channel}
             </span>
           </div>

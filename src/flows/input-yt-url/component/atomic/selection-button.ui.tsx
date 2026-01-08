@@ -45,7 +45,7 @@ export function SelectionButton({
           <span className="font-bold text-sm leading-none">{title}</span>
           <span
             className={cn(
-              "text-[10px] uppercase font-bold tracking-tight mt-1 opacity-70",
+              "text-xs uppercase font-bold tracking-tight mt-1 opacity-70",
               isSelected ? "text-white" : "text-muted-foreground",
             )}
           >
@@ -57,7 +57,7 @@ export function SelectionButton({
         {rightLabel && (
           <span
             className={cn(
-              "text-[10px] font-mono font-bold px-2 py-0.5 rounded",
+              "text-xs font-mono font-bold px-2 py-0.5 rounded",
               isSelected ? "bg-white text-primary" : "bg-muted text-foreground",
             )}
           >
