@@ -183,7 +183,7 @@ function App() {
         {/* Minimal Footer */}
         {!metadata && (
           <p className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
-            v{version} • stable engine
+            {version ? `v${version} • stable engine` : "yt-dlp not detected"}
           </p>
         )}
       </div>

@@ -55,9 +55,11 @@ export function MetadataDisplay({
         setStatus("error");
         setErrorMessage(res.error);
       }
-    } catch (_err) {
+    } catch (err) {
       setStatus("error");
-      setErrorMessage("Engine timeout: The server took too long to respond.");
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
     }
   }
   return (
@@ -118,7 +120,7 @@ export function MetadataDisplay({
                     key={f.formatId}
                     isSelected={state.selectedAudio === f.formatId}
                     onClick={() => actions.toggleAudio(f.formatId)}
-                    title={f.resolution.split(",")[0]}
+                    title={f.resolution ? f.resolution.split(",")[0] : "Audio"}
                     desc={`${f.ext.toUpperCase()} Audio`}
                     rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
                   />
@@ -228,7 +230,7 @@ export function MetadataDisplay({
           onClick={handleDownloadClick}
           disabled={
             status === "loading" ||
-            (!state.selectedVideo && !state.selectedAudio && !state.selectedSub)
+            (!state.selectedVideo && !state.selectedAudio)
           }
           size="lg"
           variant={status === "error" ? "destructive" : "default"}
@@ -237,15 +239,13 @@ export function MetadataDisplay({
           {status === "loading" ? (
             "Working..."
           ) : status === "success" ? (
-            "Start New Download"
+            "Download Again"
           ) : (
             <>
               <Download className="w-5 h-5" />
-              {!state.selectedVideo &&
-              !state.selectedAudio &&
-              !state.selectedSub
-                ? "Select Format"
-                : "Extract Video"}
+              {!state.selectedVideo && !state.selectedAudio
+                ? "Select Video/Audio"
+                : "Extract Media"}
             </>
           )}
         </Button>
