@@ -52,12 +52,11 @@ function DownloaderPage() {
     setIsSubmitting(false);
   };
 
-  console.log(metadata);
   return (
     <div
-      className={`min-h-dvh w-full flex flex-col items-center px-6 transition-all duration-500 ease-in-out ${metadata ? "py-8" : "justify-center"}`}
+      className={`min-h-dvh w-full flex flex-col items-center px-6 transition-all duration-500 ease-in-out ${metadata ? "py-6" : "justify-center"}`}
     >
-      <div className="w-full max-w-3xl flex flex-col gap-6">
+      <div className="w-full max-w-3xl flex flex-col gap-4">
         {!metadata && (
           <div className="text-center space-y-2 animate-in fade-in zoom-in-95 duration-300">
             <h1 className="text-4xl font-extrabold tracking-tight italic">

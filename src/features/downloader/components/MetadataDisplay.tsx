@@ -1,21 +1,9 @@
-import {
-  AlertCircle,
-  CheckCircle2,
-  Download,
-  Languages,
-  Loader,
-  Monitor,
-  Music,
-  XIcon,
-} from "lucide-react";
+import { Download, Languages, Loader, Monitor, Music, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import {
-  downloadVideoAction,
-  streamDownloadVideoAction,
-} from "@/server/actions/downloader.actions";
+import { streamDownloadVideoAction } from "@/server/actions/downloader.actions";
 import { useMetadataManager } from "../hooks/useMetadataManager";
 import type { VideoMetadata } from "../types/video-metadata.types";
 import type {
@@ -23,9 +11,11 @@ import type {
   StreamSuccess,
   StreamError,
   StreamIdle,
+  StreamPreparing,
 } from "@/shared/types/api.types";
 import { formatBitToMB } from "../utils/format.utils";
 import { SelectionBadge } from "./ui/SelectionBadge";
+import { DownloadProgress } from "./ui/DownloadProgress";
 import { SelectionButton } from "./ui/SelectionButton";
 import { TabTrigger } from "./ui/TabTrigger";
 import { VideoHeader } from "./ui/VideoHeader";
@@ -38,12 +28,8 @@ interface MetadataDisplayProps {
 export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   const { state, actions, data: view } = useMetadataManager(data);
 
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamResult, setStreamResult] = useState<
-    StreamIdle | StreamProgress | StreamError | StreamSuccess
+    StreamIdle | StreamProgress | StreamError | StreamSuccess | StreamPreparing
   >({
     type: "idle",
     data: null,
@@ -53,34 +39,6 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
 
   const [controller, setController] = useState<AbortController | null>(null);
 
-  async function handleDownloadClick() {
-    setStatus("loading");
-    setErrorMessage(null);
-
-    try {
-      const res = await downloadVideoAction({
-        data: {
-          url: videoUrl,
-          videoFormatId: state.selectedVideo,
-          audioFormatId: state.selectedAudio,
-          subId: state.selectedSub,
-        },
-      });
-
-      if (res.success) {
-        setStatus("success");
-      } else {
-        setStatus("error");
-        setErrorMessage(res.error);
-      }
-    } catch (err) {
-      setStatus("error");
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
-    }
-  }
-
   async function streamDownload() {
     if (controller) {
       controller.abort();
@@ -88,6 +46,22 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
 
     const ctrl = new AbortController();
     setController(ctrl);
+
+    setStreamResult({
+      type: "preparing",
+      data: null,
+      raw: "",
+      error: null,
+    });
+
+    const timeoutId = setTimeout(() => {
+      setStreamResult({
+        type: "error",
+        data: null,
+        raw: "",
+        error: "Download timeout. Please try again.",
+      });
+    }, 30000);
 
     try {
       for await (const update of await streamDownloadVideoAction({
@@ -99,9 +73,11 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         },
         signal: ctrl.signal,
       })) {
+        clearTimeout(timeoutId);
         setStreamResult(update);
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       if (error instanceof Error && error.name === "AbortError") {
         setStreamResult({
           type: "idle",
@@ -110,7 +86,6 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           error: null,
         });
       } else {
-        setStatus("error");
         setStreamResult({
           type: "error",
           data: null,
@@ -138,7 +113,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <VideoHeader data={data} />
 
       <Tabs defaultValue="video" className="w-full">
@@ -166,7 +141,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         </TabsList>
 
         <div className="mt-3 border rounded-xl bg-linear-to-b from-card/40 to-card/20 backdrop-blur-sm overflow-hidden shadow-sm">
-          <ScrollArea className="h-80">
+          <ScrollArea className="h-72">
             <div className="p-3 space-y-2">
               <TabsContent
                 value="video"
@@ -220,8 +195,8 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         </div>
       </Tabs>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-3 h-16 p-1 rounded-xl bg-linear-to-r from-muted/30 to-muted/10 backdrop-blur-sm border border-border/30">
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 h-14 p-1 rounded-xl bg-linear-to-r from-muted/30 to-muted/10 backdrop-blur-sm border border-border/30">
           <SelectionBadge
             icon={<Monitor className="w-4 h-4" />}
             label={view.summary.videoLabel}
@@ -250,110 +225,48 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           </div>
         </div>
 
-        {status !== "idle" && (
-          <div
-            className={`p-4 rounded-xl border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-              status === "loading"
-                ? "bg-muted/30 border-border/50 text-muted-foreground"
-                : status === "success"
-                  ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
-                  : "bg-destructive/10 border-destructive/20 text-destructive"
-            }`}
-          >
-            <div className="mt-0.5">
-              {status === "loading" && (
-                <Loader className="w-5 h-5 animate-spin text-primary" />
-              )}
-              {status === "success" && <CheckCircle2 className="w-5 h-5" />}
-              {status === "error" && <AlertCircle className="w-5 h-5" />}
-            </div>
-
-            <div className="flex-1">
-              <p
-                className={`text-xs font-black uppercase tracking-wider leading-tight ${
-                  status === "loading"
-                    ? "opacity-70"
-                    : status === "success"
-                      ? "text-green-600 dark:text-green-400/80"
-                      : "text-destructive/80"
-                }`}
-              >
-                {status === "loading" && "Processing"}
-                {status === "success" && "Complete"}
-                {status === "error" && "Error"}
-              </p>
-              <p className="text-sm font-semibold mt-1">
-                {status === "loading" && "Merging streams & saving to disk..."}
-                {status === "success" && "Video saved to /storage folder"}
-                {status === "error" &&
-                  (errorMessage || "An unknown error occurred.")}
-              </p>
-            </div>
-
-            {status !== "loading" && (
+        {(streamResult.type === "idle" || streamResult.type === "preparing") &&
+          (streamResult.type === "preparing" ? (
+            <div className="flex gap-2">
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setStatus("idle")}
-                className="h-8 w-8 -mr-2 -mt-1"
+                disabled
+                size="lg"
+                className="flex-1 h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group"
               >
-                <XIcon className="w-4 h-4 opacity-50 hover:opacity-100" />
+                <div className="absolute inset-0 bg-linear-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <Loader className="w-5 h-5 animate-spin" />
+                Preparing...
               </Button>
-            )}
-          </div>
-        )}
-
-        <Button
-          onClick={handleDownloadClick}
-          disabled={
-            status === "loading" ||
-            (!state.selectedVideo && !state.selectedAudio)
-          }
-          size="lg"
-          variant={status === "error" ? "destructive" : "default"}
-          className="w-full h-14 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group"
-        >
-          <div className="absolute inset-0 bg-linear-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          {status === "loading" ? (
-            <div className="flex items-center gap-2">
-              <Loader className="w-5 h-5 animate-spin" />
-              Processing...
-            </div>
-          ) : status === "success" ? (
-            <div className="flex items-center gap-2">
-              <Download className="w-5 h-5" />
-              Download Again
+              <Button
+                variant="outline"
+                onClick={cancelDownload}
+                size="lg"
+                className="w-12 h-12 rounded-2xl shadow-xl transition-all duration-200 active:scale-[0.98]"
+              >
+                <X className="w-5 h-5" />
+              </Button>
             </div>
           ) : (
-            <>
+            <Button
+              onClick={streamDownload}
+              disabled={!state.selectedVideo && !state.selectedAudio}
+              size="lg"
+              className="w-full h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-linear-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform duration-300" />
               {!state.selectedVideo && !state.selectedAudio
                 ? "Select Video/Audio"
-                : "Extract Media"}
-            </>
-          )}
-        </Button>
+                : "Download"}
+            </Button>
+          ))}
 
-        {streamResult.type === "idle" ? (
-          <Button onClick={streamDownload}>Stream Download</Button>
-        ) : (
-          <div>
-            simple stream banner
-            <div>Stream Type: {streamResult.type}</div>
-            <div>Stream Data: {streamResult.data}</div>
-            <div>Stream Raw: {streamResult.raw}</div>
-            <div>Stream Error: {streamResult.error}</div>
-            {streamResult.type === "progress" && (
-              <Button onClick={cancelDownload}>Cancel Download</Button>
-            )}
-            {streamResult.type === "success" && (
-              <Button onClick={resetStreamResult}>Close</Button>
-            )}
-            {streamResult.type === "error" && (
-              <Button onClick={resetStreamResult}>Close</Button>
-            )}
-          </div>
-        )}
+        <DownloadProgress
+          streamResult={streamResult}
+          onCancel={cancelDownload}
+          onRetry={streamDownload}
+          onClose={resetStreamResult}
+        />
       </div>
     </div>
   );

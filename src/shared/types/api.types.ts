@@ -36,6 +36,13 @@ export type StreamError = {
   error: string;
 };
 
+export type StreamPreparing = {
+  type: "preparing";
+  data: null;
+  raw: "";
+  error: null;
+};
+
 export type StreamIdle = {
   type: "idle";
   data: null;

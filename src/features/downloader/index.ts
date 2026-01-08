@@ -1,5 +1,4 @@
 export * from "./components/DownloaderForm";
-export * from "./components/DownloaderPage";
 export * from "./components/MetadataDisplay";
 export * from "./components/ui/SelectionBadge";
 export * from "./components/ui/SelectionButton";
