@@ -1,15 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import * as z from "zod";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
-import type {
-  ServerResponse,
-  StreamError,
-  StreamProgress,
-  StreamSuccess,
-} from "@/shared/types/api.types";
+import type { ServerResponse } from "@/shared/types/api.types";
 import {
   executeDownload,
-  executeDownloadStream,
   getVideoMetadata,
   getYTVersion,
 } from "../services/downloader.service";
@@ -41,14 +35,4 @@ export const downloadVideoAction = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ServerResponse<string>> => {
     logger.info("Starting download process", { url: data.url });
     return await executeDownload(data);
-  });
-
-export const streamDownloadVideoAction = createServerFn({ method: "POST" })
-  .inputValidator(downloadSchema)
-  .handler(async function* ({
-    data,
-    signal,
-  }): AsyncGenerator<StreamProgress | StreamSuccess | StreamError> {
-    logger.info("Starting download stream", { url: data.url });
-    yield* executeDownloadStream(data, signal);
   });

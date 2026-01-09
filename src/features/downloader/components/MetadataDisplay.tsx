@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { streamDownloadVideoAction } from "@/server/actions/downloader.actions";
+
 import type {
   StreamError,
   StreamIdle,
@@ -54,30 +54,56 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       error: null,
     });
 
-    const timeoutId = setTimeout(() => {
-      setStreamResult({
-        type: "error",
-        data: null,
-        raw: "",
-        error: "Download timeout. Please try again.",
-      });
-    }, 30000);
-
     try {
-      for await (const update of await streamDownloadVideoAction({
-        data: {
+      const response = await fetch("/api/stream-download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           url: videoUrl,
           videoFormatId: state.selectedVideo,
           audioFormatId: state.selectedAudio,
           subId: state.selectedSub,
-        },
+        }),
         signal: ctrl.signal,
-      })) {
-        clearTimeout(timeoutId);
-        setStreamResult(update);
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep the last incomplete line
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data.trim() === "") continue;
+
+            try {
+              const update = JSON.parse(data);
+              setStreamResult(update);
+            } catch (e) {
+              console.error("Failed to parse SSE data:", data, e);
+            }
+          }
+        }
       }
     } catch (error) {
-      clearTimeout(timeoutId);
       if (error instanceof Error && error.name === "AbortError") {
         setStreamResult({
           type: "idle",
@@ -90,7 +116,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           type: "error",
           data: null,
           raw: "",
-          error: error instanceof Error ? error.message : "",
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     } finally {
