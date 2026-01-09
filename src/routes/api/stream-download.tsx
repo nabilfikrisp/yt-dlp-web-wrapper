@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { downloadRequestSchema } from "@/features/downloader/validators/download-request.validator";
 import { executeDownloadStream } from "@/server/services/downloader.service";
+import { ERROR_MESSAGES } from "@/server/utils/error.utils";
 import { logger } from "@/server/utils/logger.utils";
 import { APP_CONFIG } from "@/shared/config/app.config";
 import type { DownloadRequest } from "@/shared/types/api.types";
+
+function formatSSEMessage(data: unknown): string {
+  return `data: ${JSON.stringify(data)}\n\n`;
+}
 
 export const Route = createFileRoute("/api/stream-download")({
   server: {
@@ -26,7 +31,9 @@ export const Route = createFileRoute("/api/stream-download")({
           logger.error("Failed to parse request body", error, {
             url: request.url,
           });
-          return new Response("Invalid request body", { status: 400 });
+          return new Response(ERROR_MESSAGES.INVALID_REQUEST_BODY, {
+            status: 400,
+          });
         }
 
         const validationResult = downloadRequestSchema.safeParse(parsedBody);
@@ -37,7 +44,7 @@ export const Route = createFileRoute("/api/stream-download")({
             validationResult.error,
             { url: request.url },
           );
-          return new Response("Invalid download request payload", {
+          return new Response(ERROR_MESSAGES.INVALID_DOWNLOAD_REQUEST, {
             status: 400,
           });
         }
@@ -57,7 +64,10 @@ export const Route = createFileRoute("/api/stream-download")({
               logger.info("Stream response timed out", { url: request.url });
               abortController.abort();
               controller.enqueue(
-                `data: ${JSON.stringify({ type: "error", error: "Download timeout. Please try again." })}\n\n`,
+                formatSSEMessage({
+                  type: "error",
+                  error: ERROR_MESSAGES.DOWNLOAD_TIMEOUT,
+                }),
               );
               controller.close();
             }, APP_CONFIG.STREAM_TIMEOUT_MS);
@@ -77,14 +87,20 @@ export const Route = createFileRoute("/api/stream-download")({
                   });
                   break;
                 }
-                controller.enqueue(`data: ${JSON.stringify(update)}\n\n`);
+                controller.enqueue(formatSSEMessage(update));
               }
             } catch (error) {
               logger.error("Error during download stream in API route", error, {
                 url: downloadRequest.url,
               });
               controller.enqueue(
-                `data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`,
+                formatSSEMessage({
+                  type: "error",
+                  error:
+                    error instanceof Error
+                      ? error.message
+                      : ERROR_MESSAGES.UNKNOWN_ERROR,
+                }),
               );
             } finally {
               clearTimeout(timeoutId);

@@ -2,6 +2,20 @@ import { APP_CONFIG } from "@/shared/config/app.config";
 import type { ServerResponse, StreamError } from "@/shared/types/api.types";
 import { logger } from "./logger.utils";
 
+export const ERROR_MESSAGES = {
+  INVALID_REQUEST_BODY: "Invalid request body",
+  INVALID_DOWNLOAD_REQUEST: "Invalid download request payload",
+  DOWNLOAD_TIMEOUT: "Download timeout. Please try again.",
+  DOWNLOAD_CANCELLED: "Download cancelled",
+  NO_RESPONSE_BODY: "No response body",
+  UNKNOWN_ERROR: "Unknown error",
+  HTTP_ERROR: (status: number) => `HTTP error! status: ${status}`,
+  SSE_PARSE_FAILED: "Failed to parse SSE data:",
+  NO_FORMAT_SELECTED: "Please select a video or audio format",
+  RATE_LIMIT_HIT: "Rate limit hit. Try again in an hour.",
+  UNEXPECTED_SERVER_ERROR: "An unexpected server error occurred",
+} as const;
+
 export function handleServerError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -10,7 +24,7 @@ export function handleServerError(error: unknown) {
   return {
     success: false,
     data: null,
-    error: message || "An unexpected server error occurred",
+    error: message || ERROR_MESSAGES.UNEXPECTED_SERVER_ERROR,
   };
 }
 
@@ -24,7 +38,10 @@ export function isAbortError(error: unknown): boolean {
 }
 
 export function isMissingFormatError(error: unknown): boolean {
-  return error instanceof Error && error.message === "No format selected";
+  return (
+    error instanceof Error &&
+    error.message === ERROR_MESSAGES.NO_FORMAT_SELECTED
+  );
 }
 
 export function handleDownloadError(error: unknown): ServerResponse<never> {
@@ -32,19 +49,23 @@ export function handleDownloadError(error: unknown): ServerResponse<never> {
     return {
       success: false,
       data: null,
-      error: "Please select a video or audio format",
+      error: ERROR_MESSAGES.NO_FORMAT_SELECTED,
     };
   }
 
   if (isAbortError(error)) {
-    return { success: false, data: null, error: "Download cancelled" };
+    return {
+      success: false,
+      data: null,
+      error: ERROR_MESSAGES.DOWNLOAD_CANCELLED,
+    };
   }
 
   if (isRateLimitError(error)) {
     return {
       success: false,
       data: null,
-      error: "Rate limit hit. Try again in an hour.",
+      error: ERROR_MESSAGES.RATE_LIMIT_HIT,
     };
   }
 
@@ -62,7 +83,7 @@ export function handleStreamError(
       type: "error",
       data: null,
       raw: message,
-      error: "Please select a video or audio format",
+      error: ERROR_MESSAGES.NO_FORMAT_SELECTED,
     };
   }
 
@@ -70,8 +91,8 @@ export function handleStreamError(
     return {
       type: "error",
       data: null,
-      raw: "Download cancelled",
-      error: "Download was cancelled",
+      raw: ERROR_MESSAGES.DOWNLOAD_CANCELLED,
+      error: ERROR_MESSAGES.DOWNLOAD_CANCELLED,
     };
   }
 
@@ -80,7 +101,7 @@ export function handleStreamError(
       type: "error",
       data: null,
       raw: message,
-      error: "Rate limit hit. Try again in an hour.",
+      error: ERROR_MESSAGES.RATE_LIMIT_HIT,
     };
   }
 

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-
+import { ERROR_MESSAGES } from "@/server/utils/error.utils";
 import type {
   StreamError,
   StreamIdle,
@@ -70,7 +70,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(ERROR_MESSAGES.HTTP_ERROR(response.status));
       }
 
       const reader = response.body?.getReader();
@@ -78,7 +78,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       let buffer = "";
 
       if (!reader) {
-        throw new Error("No response body");
+        throw new Error(ERROR_MESSAGES.NO_RESPONSE_BODY);
       }
 
       while (true) {
@@ -98,7 +98,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
               const update = JSON.parse(data);
               setStreamResult(update);
             } catch (e) {
-              console.error("Failed to parse SSE data:", data, e);
+              console.error(ERROR_MESSAGES.SSE_PARSE_FAILED, data, e);
             }
           }
         }
@@ -108,7 +108,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         setStreamResult({
           type: "idle",
           data: null,
-          raw: "Download cancelled",
+          raw: ERROR_MESSAGES.DOWNLOAD_CANCELLED,
           error: null,
         });
       } else {
@@ -116,7 +116,10 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           type: "error",
           data: null,
           raw: "",
-          error: error instanceof Error ? error.message : "Unknown error",
+          error:
+            error instanceof Error
+              ? error.message
+              : ERROR_MESSAGES.UNKNOWN_ERROR,
         });
       }
     } finally {
