@@ -1,16 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import * as z from "zod";
+import { downloadRequestSchema } from "@/features/downloader/validators/download-request.validator";
 import { executeDownloadStream } from "@/server/services/downloader.service";
 import { logger } from "@/server/utils/logger.utils";
 import { APP_CONFIG } from "@/shared/config/app.config";
 import type { DownloadRequest } from "@/shared/types/api.types";
-
-const downloadSchema = z.object({
-  url: z.string(),
-  videoFormatId: z.string().nullable(),
-  audioFormatId: z.string().nullable(),
-  subId: z.string().nullable(),
-});
 
 export const Route = createFileRoute("/api/stream-download")({
   server: {
@@ -36,7 +29,7 @@ export const Route = createFileRoute("/api/stream-download")({
           return new Response("Invalid request body", { status: 400 });
         }
 
-        const validationResult = downloadSchema.safeParse(parsedBody);
+        const validationResult = downloadRequestSchema.safeParse(parsedBody);
 
         if (!validationResult.success) {
           logger.error(
