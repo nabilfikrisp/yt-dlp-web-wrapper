@@ -4,18 +4,18 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { streamDownloadVideoAction } from "@/server/actions/downloader.actions";
-import { useMetadataManager } from "../hooks/useMetadataManager";
-import type { VideoMetadata } from "../types/video-metadata.types";
 import type {
-  StreamProgress,
-  StreamSuccess,
   StreamError,
   StreamIdle,
   StreamPreparing,
+  StreamProgress,
+  StreamSuccess,
 } from "@/shared/types/api.types";
+import { useMetadataManager } from "../hooks/useMetadataManager";
+import type { VideoMetadata } from "../types/video-metadata.types";
 import { formatBitToMB } from "../utils/format.utils";
-import { SelectionBadge } from "./ui/SelectionBadge";
 import { DownloadProgress } from "./ui/DownloadProgress";
+import { SelectionBadge } from "./ui/SelectionBadge";
 import { SelectionButton } from "./ui/SelectionButton";
 import { TabTrigger } from "./ui/TabTrigger";
 import { VideoHeader } from "./ui/VideoHeader";
@@ -98,6 +98,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     }
   }
 
+  // TODO IMPLEMENT THE CORRECT ABORT
   function cancelDownload() {
     controller?.abort();
     resetStreamResult();

@@ -5,9 +5,9 @@ import * as z from "zod";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
 import type {
   ServerResponse,
+  StreamError,
   StreamProgress,
   StreamSuccess,
-  StreamError,
 } from "@/shared/types/api.types";
 import { parseYtDlpJson } from "../services/downloader.service";
 import { runYtDlp, runYtDlpStream } from "../services/yt-dlp.service";
