@@ -1,11 +1,25 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import type {
   AudioFormat,
   Subtitle,
   VideoFormat,
   VideoMetadata,
 } from "@/features/downloader/types/video-metadata.types";
-import type { ServerResponse } from "@/shared/types/api.types";
-import { handleServerError } from "../utils/error.utils";
+import { APP_CONFIG } from "@/shared/config/app.config";
+import type {
+  DownloadRequest,
+  ServerResponse,
+  StreamError,
+  StreamProgress,
+  StreamSuccess,
+} from "@/shared/types/api.types";
+import {
+  handleDownloadError,
+  handleServerError,
+  handleStreamError,
+} from "../utils/error.utils";
+import { logger } from "../utils/logger.utils";
 import { runYtDlp } from "./yt-dlp.service";
 
 interface YtDlpFormat {
@@ -27,6 +41,73 @@ interface YtDlpRawJson {
   subtitles?: Record<string, unknown>;
   automatic_captions?: Record<string, unknown>;
   formats?: YtDlpFormat[];
+}
+
+interface DownloadPrepared {
+  args: string[];
+  storagePath: string;
+}
+
+export function createFormatSelection(
+  videoFormatId: string | null,
+  audioFormatId: string | null,
+): string {
+  return [videoFormatId, audioFormatId].filter(Boolean).join("+");
+}
+
+export async function prepareDownload(
+  config: DownloadRequest,
+): Promise<DownloadPrepared> {
+  const storagePath = path.resolve(APP_CONFIG.STORAGE_PATH);
+
+  await fs.mkdir(storagePath, { recursive: true });
+
+  const outputPath = path.join(storagePath, "%(title)s.%(ext)s");
+
+  const formatSelection = createFormatSelection(
+    config.videoFormatId,
+    config.audioFormatId,
+  );
+
+  if (!formatSelection) {
+    throw new Error("No format selected");
+  }
+
+  const args = [
+    "-f",
+    formatSelection,
+    "-o",
+    outputPath,
+    "--no-playlist",
+    config.url,
+  ];
+
+  if (config.subId) {
+    args.push("--write-subs", "--sub-langs", config.subId);
+  }
+
+  return { args, storagePath };
+}
+
+export async function executeDownload(
+  config: DownloadRequest,
+): Promise<ServerResponse<string>> {
+  logger.info("Starting download", { url: config.url });
+
+  try {
+    const { args, storagePath } = await prepareDownload(config);
+
+    await runYtDlp(args);
+
+    logger.info("Download complete", { storagePath });
+    return {
+      success: true,
+      data: "Video saved to server storage folder.",
+      error: null,
+    };
+  } catch (error) {
+    return handleDownloadError(error);
+  }
 }
 
 export function parseYtDlpJson(rawJson: string): VideoMetadata {
@@ -74,7 +155,8 @@ export function parseYtDlpJson(rawJson: string): VideoMetadata {
 export async function getVideoMetadata(
   url: string,
 ): Promise<ServerResponse<VideoMetadata>> {
-  console.log(`[Terminal] 🚀 Fetching video metadata...`);
+  logger.info("Fetching video metadata", { url });
+
   try {
     const result = await runYtDlp([
       "--dump-json",
@@ -85,7 +167,7 @@ export async function getVideoMetadata(
 
     const metadata = parseYtDlpJson(result);
 
-    console.log(`[Terminal] ✅ Success fetching metadata`);
+    logger.info("Success fetching metadata");
 
     return {
       success: true,
@@ -97,13 +179,44 @@ export async function getVideoMetadata(
   }
 }
 
+export async function* executeDownloadStream(
+  config: DownloadRequest,
+  signal: AbortSignal,
+): AsyncGenerator<StreamProgress | StreamSuccess | StreamError> {
+  logger.info("Starting download stream", { url: config.url });
+
+  try {
+    const { args } = await prepareDownload(config);
+
+    const { runYtDlpStream } = await import("./yt-dlp.service");
+    yield* runYtDlpStream(args, signal);
+
+    yield {
+      type: "success",
+      data: "Download finished!",
+      raw: "",
+      error: null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    const streamError = handleStreamError(error, !!config.subId);
+    if (streamError) {
+      yield streamError;
+      return;
+    }
+
+    yield { type: "error", data: null, raw: message, error: message };
+  }
+}
+
 export async function getYTVersion(): Promise<ServerResponse<string>> {
-  console.log(`[Terminal] 🚀 Checking yt-dlp version...`);
+  logger.info("Checking yt-dlp version");
 
   try {
     const version = await runYtDlp(["--version"]);
 
-    console.log(`[Terminal] ✅ Success: ${version}`);
+    logger.info("Success", { version });
 
     return {
       success: true,

@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
+import { APP_CONFIG } from "@/shared/config/app.config";
 
 export async function runYtDlp(args: string[]): Promise<string> {
-  const isWindows = process.platform === "win32";
-  const command = isWindows ? "yt-dlp.exe" : "yt-dlp";
+  const command = APP_CONFIG.YTDLP_COMMAND;
 
   return new Promise((resolve, reject) => {
     const ls = spawn(command, args);
@@ -47,8 +47,7 @@ export async function* runYtDlpStream(
       error: string;
     }
 > {
-  const isWindows = process.platform === "win32";
-  const command = isWindows ? "yt-dlp.exe" : "yt-dlp";
+  const command = APP_CONFIG.YTDLP_COMMAND;
 
   const finalArgs = ["--newline", ...args];
   const ls = spawn(command, finalArgs);
@@ -79,8 +78,6 @@ export async function* runYtDlpStream(
     errorOutput += decoder.decode(data);
   });
 
-  // THIS IS RAW
-  // [download] 26.2% of 1.16GiB at 4.66MiB/s ETA 03:08
   let wasAborted = false;
 
   try {
@@ -102,7 +99,7 @@ export async function* runYtDlpStream(
         };
       }
 
-      if (errorOutput.includes("429")) {
+      if (errorOutput.includes(APP_CONFIG.RATE_LIMIT_ERROR)) {
         ls.kill();
         throw new Error("429");
       }
@@ -120,7 +117,7 @@ export async function* runYtDlpStream(
     throw error;
   }
 
-  if (exitCode !== 0 && !errorOutput.includes("429")) {
+  if (exitCode !== 0 && !errorOutput.includes(APP_CONFIG.RATE_LIMIT_ERROR)) {
     throw new Error(errorOutput || `yt-dlp failed with code ${exitCode}`);
   }
 }
