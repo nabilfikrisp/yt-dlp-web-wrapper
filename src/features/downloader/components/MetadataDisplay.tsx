@@ -74,12 +74,11 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       }
 
       const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
       if (!reader) {
         throw new Error(ERROR_MESSAGES.NO_RESPONSE_BODY);
       }
+      const decoder = new TextDecoder();
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -127,7 +126,6 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     }
   }
 
-  // TODO IMPLEMENT THE CORRECT ABORT
   function cancelDownload() {
     controller?.abort();
     resetStreamResult();
