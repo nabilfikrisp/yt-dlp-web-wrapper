@@ -20,7 +20,7 @@ import {
   handleStreamError,
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
-import { runYtDlp } from "./yt-dlp.service";
+import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
 
 interface YtDlpFormat {
   format_id: string;
@@ -188,7 +188,6 @@ export async function* executeDownloadStream(
   try {
     const { args } = await prepareDownload(config);
 
-    const { runYtDlpStream } = await import("./yt-dlp.service");
     yield* runYtDlpStream(args, signal);
 
     yield {
