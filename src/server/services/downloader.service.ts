@@ -6,7 +6,7 @@ import type {
   VideoFormat,
   VideoMetadata,
 } from "@/features/downloader/types/video-metadata.types";
-import { APP_CONFIG } from "@/shared/config/app.config";
+import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
 import type {
   DownloadRequest,
   ServerResponse,
@@ -58,7 +58,7 @@ export function createFormatSelection(
 export async function prepareDownload(
   config: DownloadRequest,
 ): Promise<DownloadPrepared> {
-  const storagePath = path.resolve(APP_CONFIG.STORAGE_PATH);
+  const storagePath = path.resolve(APP_SERVER_CONFIG.STORAGE_PATH);
 
   await fs.mkdir(storagePath, { recursive: true });
 

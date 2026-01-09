@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import { APP_CONFIG } from "@/shared/config/app.config";
+import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
 
 export async function runYtDlp(args: string[]): Promise<string> {
-  const command = APP_CONFIG.YTDLP_COMMAND;
+  const command = APP_SERVER_CONFIG.YTDLP_COMMAND;
 
   return new Promise((resolve, reject) => {
     const ls = spawn(command, args);
@@ -47,7 +48,7 @@ export async function* runYtDlpStream(
       error: string;
     }
 > {
-  const command = APP_CONFIG.YTDLP_COMMAND;
+  const command = APP_SERVER_CONFIG.YTDLP_COMMAND;
 
   const finalArgs = ["--newline", ...args];
   const ls = spawn(command, finalArgs);

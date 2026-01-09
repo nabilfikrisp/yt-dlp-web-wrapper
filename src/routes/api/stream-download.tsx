@@ -10,6 +10,24 @@ function formatSSEMessage(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
+function createStreamTimeout(
+  controller: ReadableStreamDefaultController,
+  abortController: AbortController,
+  url: string,
+): NodeJS.Timeout {
+  return setTimeout(() => {
+    logger.info("Stream response timed out", { url });
+    abortController.abort();
+    controller.enqueue(
+      formatSSEMessage({
+        type: "error",
+        error: ERROR_MESSAGES.DOWNLOAD_TIMEOUT,
+      }),
+    );
+    controller.close();
+  }, APP_CONFIG.STREAM_TIMEOUT_MS);
+}
+
 export const Route = createFileRoute("/api/stream-download")({
   server: {
     handlers: {
@@ -60,17 +78,11 @@ export const Route = createFileRoute("/api/stream-download")({
         let timeoutId: NodeJS.Timeout;
         const responseStream = new ReadableStream({
           async start(controller) {
-            timeoutId = setTimeout(() => {
-              logger.info("Stream response timed out", { url: request.url });
-              abortController.abort();
-              controller.enqueue(
-                formatSSEMessage({
-                  type: "error",
-                  error: ERROR_MESSAGES.DOWNLOAD_TIMEOUT,
-                }),
-              );
-              controller.close();
-            }, APP_CONFIG.STREAM_TIMEOUT_MS);
+            timeoutId = createStreamTimeout(
+              controller,
+              abortController,
+              request.url,
+            );
 
             logger.info("Starting download stream for new API route", {
               url: downloadRequest.url,
@@ -87,6 +99,12 @@ export const Route = createFileRoute("/api/stream-download")({
                   });
                   break;
                 }
+                clearTimeout(timeoutId);
+                timeoutId = createStreamTimeout(
+                  controller,
+                  abortController,
+                  request.url,
+                );
                 controller.enqueue(formatSSEMessage(update));
               }
             } catch (error) {

@@ -2,11 +2,11 @@ import { AlertCircle, CheckCircle2, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type {
+  StreamError,
   StreamIdle,
+  StreamPreparing,
   StreamProgress,
   StreamSuccess,
-  StreamError,
-  StreamPreparing,
 } from "@/shared/types/api.types";
 import { calculateCurrentSize } from "../../utils/parse-progress.utils";
 
@@ -81,13 +81,16 @@ export function DownloadProgress({
                   </span>
                 )}
               </div>
-              {parsedProgress.speed && parsedProgress.eta && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium mt-1">
-                  <span className="tabular-nums">{parsedProgress.speed}</span>
-                  <span>•</span>
-                  <span className="tabular-nums">ETA {parsedProgress.eta}</span>
-                </div>
-              )}
+
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium mt-1">
+                <span className="tabular-nums">
+                  {parsedProgress.speed || "00.00MiB/s"}
+                </span>
+                <span>•</span>
+                <span className="tabular-nums">
+                  ETA {parsedProgress.eta || "00:00"}
+                </span>
+              </div>
             </div>
             <Button
               variant="ghost"

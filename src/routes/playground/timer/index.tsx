@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import type {
   TimerConfig,
   TimerUpdate,
 } from "@/features/playground/types/timer.types";
 import { startTimerAction } from "@/server/actions/playground-timer.actions";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/playground/timer/")({
   component: RouteComponent,

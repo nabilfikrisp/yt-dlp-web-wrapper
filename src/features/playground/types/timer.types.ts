@@ -8,4 +8,3 @@ export interface TimerConfig {
   duration: number; // seconds
   interval: number; // milliseconds
 }
-
