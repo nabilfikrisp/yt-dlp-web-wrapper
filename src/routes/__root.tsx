@@ -30,7 +30,7 @@ export const Route = createRootRoute({
       <div className="flex flex-col items-center justify-center h-screen px-6">
         <div className="text-center space-y-6 max-w-md">
           <div className="space-y-2">
-            <h1 className="text-6xl font-black text-foreground bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            <h1 className="text-6xl font-black text-foreground bg-linear-to-r from-foreground to-muted-foreground bg-clip-text">
               404
             </h1>
             <p className="text-xl font-semibold text-muted-foreground">
@@ -61,8 +61,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="antialiased">
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-50"></div>
+        <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-50"></div>
           <div className="relative">
             <Toaster
               position="top-center"
