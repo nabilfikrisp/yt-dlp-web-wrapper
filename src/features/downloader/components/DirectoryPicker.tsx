@@ -4,21 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { getNativeDirectoryAction } from "@/server/actions/directory-picker.actions";
+import { APP_CONFIG } from "@/shared/config/app.config";
 
 const STORAGE_KEY = "yt-dlp-download-path";
 const DEBOUNCE_MS = 500;
 
 interface DirectoryPickerProps {
-  onPathChange: (path: string | null) => void;
+  onPathChange: (path: string) => void;
+  value: string;
 }
 
-export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
-  const [selectedPath, setSelectedPath] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY);
-    }
-    return null;
-  });
+export function DirectoryPicker({ onPathChange, value }: DirectoryPickerProps) {
+  const [selectedPath, setSelectedPath] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,7 +52,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
         onPathChange(newPath);
       } else {
         localStorage.removeItem(STORAGE_KEY);
-        onPathChange(null);
+        onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
       }
     }, DEBOUNCE_MS);
   };
@@ -69,7 +66,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
         onPathChange(newPath);
       } else {
         localStorage.removeItem(STORAGE_KEY);
-        onPathChange(null);
+        onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
       }
     }
   };
@@ -92,9 +89,9 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
   };
 
   const handleClear = () => {
-    setSelectedPath(null);
+    setSelectedPath(APP_CONFIG.DEFAULT_STORAGE_PATH);
     localStorage.removeItem(STORAGE_KEY);
-    onPathChange(null);
+    onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
   };
 
   const handleDismissError = () => {
@@ -107,7 +104,11 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
-              value={selectedPath || ""}
+              value={
+                selectedPath === APP_CONFIG.DEFAULT_STORAGE_PATH
+                  ? `./${APP_CONFIG.DEFAULT_STORAGE_PATH}`
+                  : selectedPath
+              }
               placeholder="Default: ./storage"
               onChange={handleChange}
               onKeyDown={handleKeyDown}

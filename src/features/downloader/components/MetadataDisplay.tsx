@@ -1,9 +1,10 @@
 import { Download, Languages, Loader, Monitor, Music, X } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ERROR_MESSAGES } from "@/server/utils/error.utils";
+import { APP_CONFIG } from "@/shared/config/app.config";
 import type {
   StreamError,
   StreamIdle,
@@ -39,12 +40,9 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   });
 
   const [controller, setController] = useState<AbortController | null>(null);
-  const [downloadPath, setDownloadPath] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("yt-dlp-download-path");
-    }
-    return null;
-  });
+  const [downloadPath, setDownloadPath] = useState<string>(
+    APP_CONFIG.DEFAULT_STORAGE_PATH,
+  );
 
   async function streamDownload() {
     if (controller) {
@@ -147,6 +145,13 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       error: null,
     });
   }
+
+  useLayoutEffect(() => {
+    const saved = localStorage.getItem("yt-dlp-download-path");
+    if (saved) {
+      setDownloadPath(saved);
+    }
+  }, []);
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -261,7 +266,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           </div>
         </div>
 
-        <DirectoryPicker onPathChange={setDownloadPath} />
+        <DirectoryPicker onPathChange={setDownloadPath} value={downloadPath} />
 
         {(streamResult.type === "idle" || streamResult.type === "preparing") &&
           (streamResult.type === "preparing" ? (
