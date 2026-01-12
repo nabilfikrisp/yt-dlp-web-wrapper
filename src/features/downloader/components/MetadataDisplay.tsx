@@ -304,6 +304,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           onCancel={cancelDownload}
           onRetry={streamDownload}
           onClose={resetStreamResult}
+          donwloadPath={downloadPath}
         />
       </div>
     </div>

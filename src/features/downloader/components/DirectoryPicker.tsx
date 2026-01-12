@@ -1,11 +1,12 @@
 import { Folder, FolderOpen, Info, Loader2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { getNativeDirectoryAction } from "@/server/actions/directory-picker.actions";
 
 const STORAGE_KEY = "yt-dlp-download-path";
+const DEBOUNCE_MS = 500;
 
 interface DirectoryPickerProps {
   onPathChange: (path: string | null) => void;
@@ -20,6 +21,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -30,6 +32,47 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
       }
     }
   }, [onPathChange]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPath = e.target.value.trim() || null;
+    setSelectedPath(newPath || "");
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      if (newPath) {
+        localStorage.setItem(STORAGE_KEY, newPath);
+        onPathChange(newPath);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        onPathChange(null);
+      }
+    }, DEBOUNCE_MS);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      const newPath = selectedPath?.trim() || null;
+      if (newPath) {
+        localStorage.setItem(STORAGE_KEY, newPath);
+        onPathChange(newPath);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        onPathChange(null);
+      }
+    }
+  };
 
   const handleBrowse = async () => {
     setIsLoading(true);
@@ -66,7 +109,8 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
             <Input
               value={selectedPath || ""}
               placeholder="Default: ./storage"
-              readOnly
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
               className="pr-8"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
