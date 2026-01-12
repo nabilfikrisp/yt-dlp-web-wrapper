@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { DownloaderForm } from "@/features/downloader/components/DownloaderForm";
+import { VideoURLForm } from "@/features/downloader/components/VideoURLForm";
 import { MetadataDisplay } from "@/features/downloader/components/MetadataDisplay";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
 import {
@@ -24,6 +24,7 @@ function DownloaderPage() {
   const [videoUrl, setVideoUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleReset = () => {
     setMetadata(null);
@@ -33,6 +34,10 @@ function DownloaderPage() {
 
   const handleDismissError = () => {
     setError(null);
+  };
+
+  const handleDownloadStateChange = (downloading: boolean) => {
+    setIsDownloading(downloading);
   };
 
   const handleSubmit = async (url: string) => {
@@ -68,16 +73,23 @@ function DownloaderPage() {
           </div>
         )}
 
-        <DownloaderForm
+        <VideoURLForm
           showReset={!!metadata}
           isSubmitting={isSubmitting}
+          isDownloading={isDownloading}
           error={error}
           onSubmit={handleSubmit}
           onReset={handleReset}
           onDismissError={handleDismissError}
         />
 
-        {metadata && <MetadataDisplay data={metadata} videoUrl={videoUrl} />}
+        {metadata && (
+          <MetadataDisplay
+            data={metadata}
+            videoUrl={videoUrl}
+            onDownloadStateChange={handleDownloadStateChange}
+          />
+        )}
 
         {!metadata && (
           <p className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">

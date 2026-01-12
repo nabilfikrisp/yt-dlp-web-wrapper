@@ -25,9 +25,14 @@ import { VideoHeader } from "./ui/VideoHeader";
 interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
+  onDownloadStateChange?: (isDownloading: boolean) => void;
 }
 
-export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
+export function MetadataDisplay({
+  data,
+  videoUrl,
+  onDownloadStateChange,
+}: MetadataDisplayProps) {
   const { state, actions, data: view } = useMetadataManager(data);
 
   const DOWNLOAD_BUTTON_BASE_CLASS =
@@ -69,6 +74,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     const ctrl = new AbortController();
     setController(ctrl);
 
+    onDownloadStateChange?.(true);
     setStreamResult(createPreparingState());
 
     try {
@@ -133,6 +139,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
         );
       }
     } finally {
+      onDownloadStateChange?.(false);
       setController(null);
     }
   }
