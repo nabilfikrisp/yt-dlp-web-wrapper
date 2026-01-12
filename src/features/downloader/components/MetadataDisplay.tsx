@@ -1,9 +1,10 @@
 import { Download, Languages, Loader, Monitor, Music, X } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ERROR_MESSAGES } from "@/server/utils/error.utils";
+import { APP_CONFIG } from "@/shared/config/app.config";
 import type {
   StreamError,
   StreamIdle,
@@ -24,27 +25,46 @@ import { VideoHeader } from "./ui/VideoHeader";
 interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
+  onDownloadStateChange?: (isDownloading: boolean) => void;
 }
 
-export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
+export function MetadataDisplay({
+  data,
+  videoUrl,
+  onDownloadStateChange,
+}: MetadataDisplayProps) {
   const { state, actions, data: view } = useMetadataManager(data);
 
-  const [streamResult, setStreamResult] = useState<
-    StreamIdle | StreamProgress | StreamError | StreamSuccess | StreamPreparing
-  >({
+  const DOWNLOAD_BUTTON_BASE_CLASS =
+    "h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group";
+
+  const createIdleState = (raw = ""): StreamIdle => ({
     type: "idle",
+    data: null,
+    raw,
+    error: null,
+  });
+  const createPreparingState = (): StreamPreparing => ({
+    type: "preparing",
     data: null,
     raw: "",
     error: null,
   });
+  const createErrorState = (error: string, raw = ""): StreamError => ({
+    type: "error",
+    data: null,
+    raw,
+    error,
+  });
+
+  const [streamResult, setStreamResult] = useState<
+    StreamIdle | StreamProgress | StreamError | StreamSuccess | StreamPreparing
+  >(createIdleState());
 
   const [controller, setController] = useState<AbortController | null>(null);
-  const [downloadPath, setDownloadPath] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("yt-dlp-download-path");
-    }
-    return null;
-  });
+  const [downloadPath, setDownloadPath] = useState<string>(
+    APP_CONFIG.DEFAULT_STORAGE_PATH,
+  );
 
   async function streamDownload() {
     if (controller) {
@@ -54,12 +74,8 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
     const ctrl = new AbortController();
     setController(ctrl);
 
-    setStreamResult({
-      type: "preparing",
-      data: null,
-      raw: "",
-      error: null,
-    });
+    onDownloadStateChange?.(true);
+    setStreamResult(createPreparingState());
 
     try {
       const response = await fetch("/api/stream-download", {
@@ -112,24 +128,18 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
       }
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        setStreamResult({
-          type: "idle",
-          data: null,
-          raw: ERROR_MESSAGES.DOWNLOAD_CANCELLED,
-          error: null,
-        });
+        setStreamResult(createIdleState(ERROR_MESSAGES.DOWNLOAD_CANCELLED));
       } else {
-        setStreamResult({
-          type: "error",
-          data: null,
-          raw: "",
-          error:
+        setStreamResult(
+          createErrorState(
             error instanceof Error
               ? error.message
               : ERROR_MESSAGES.UNKNOWN_ERROR,
-        });
+          ),
+        );
       }
     } finally {
+      onDownloadStateChange?.(false);
       setController(null);
     }
   }
@@ -140,13 +150,15 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   }
 
   function resetStreamResult() {
-    setStreamResult({
-      type: "idle",
-      data: null,
-      raw: "",
-      error: null,
-    });
+    setStreamResult(createIdleState());
   }
+
+  useLayoutEffect(() => {
+    const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEY);
+    if (saved) {
+      setDownloadPath(saved);
+    }
+  }, []);
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -261,7 +273,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           </div>
         </div>
 
-        <DirectoryPicker onPathChange={setDownloadPath} />
+        <DirectoryPicker onPathChange={setDownloadPath} value={downloadPath} />
 
         {(streamResult.type === "idle" || streamResult.type === "preparing") &&
           (streamResult.type === "preparing" ? (
@@ -269,7 +281,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
               <Button
                 disabled
                 size="lg"
-                className="flex-1 h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group"
+                className={`flex-1 ${DOWNLOAD_BUTTON_BASE_CLASS}`}
               >
                 <div className="absolute inset-0 bg-linear-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <Loader className="w-5 h-5 animate-spin" />
@@ -289,7 +301,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
               onClick={streamDownload}
               disabled={!state.selectedVideo && !state.selectedAudio}
               size="lg"
-              className="w-full h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group"
+              className={`w-full ${DOWNLOAD_BUTTON_BASE_CLASS}`}
             >
               <div className="absolute inset-0 bg-linear-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform duration-300" />
@@ -304,6 +316,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           onCancel={cancelDownload}
           onRetry={streamDownload}
           onClose={resetStreamResult}
+          downloadPath={downloadPath}
         />
       </div>
     </div>

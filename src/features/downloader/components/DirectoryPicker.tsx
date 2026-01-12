@@ -1,35 +1,71 @@
 import { Folder, FolderOpen, Info, Loader2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { getNativeDirectoryAction } from "@/server/actions/directory-picker.actions";
+import { APP_CONFIG } from "@/shared/config/app.config";
 
-const STORAGE_KEY = "yt-dlp-download-path";
+const DEBOUNCE_MS = 500;
 
 interface DirectoryPickerProps {
-  onPathChange: (path: string | null) => void;
+  onPathChange: (path: string) => void;
+  value: string;
 }
 
-export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
-  const [selectedPath, setSelectedPath] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY);
-    }
-    return null;
-  });
+export function DirectoryPicker({ onPathChange, value }: DirectoryPickerProps) {
+  const [selectedPath, setSelectedPath] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEY);
       if (saved) {
         setSelectedPath(saved);
         onPathChange(saved);
       }
     }
   }, [onPathChange]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
+  const savePath = (path?: string) => {
+    if (path) {
+      localStorage.setItem(APP_CONFIG.STORAGE_KEY, path);
+      onPathChange(path);
+    } else {
+      localStorage.removeItem(APP_CONFIG.STORAGE_KEY);
+      onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPath = e.target.value.trim() || "";
+    setSelectedPath(newPath);
+
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      savePath(newPath);
+    }, DEBOUNCE_MS);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      savePath(selectedPath?.trim());
+    }
+  };
 
   const handleBrowse = async () => {
     setIsLoading(true);
@@ -41,17 +77,15 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
 
     if (result.success && result.data) {
       setSelectedPath(result.data);
-      localStorage.setItem(STORAGE_KEY, result.data);
-      onPathChange?.(result.data);
+      savePath(result.data);
     } else if (result.error && result.error !== "Dialog cancelled") {
       setError(result.error);
     }
   };
 
   const handleClear = () => {
-    setSelectedPath(null);
-    localStorage.removeItem(STORAGE_KEY);
-    onPathChange?.(null);
+    setSelectedPath(APP_CONFIG.DEFAULT_STORAGE_PATH);
+    savePath();
   };
 
   const handleDismissError = () => {
@@ -64,9 +98,14 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
-              value={selectedPath || ""}
+              value={
+                selectedPath === APP_CONFIG.DEFAULT_STORAGE_PATH
+                  ? `./${APP_CONFIG.DEFAULT_STORAGE_PATH}`
+                  : selectedPath
+              }
               placeholder="Default: ./storage"
-              readOnly
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
               className="pr-8"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">

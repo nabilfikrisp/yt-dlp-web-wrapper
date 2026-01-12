@@ -20,6 +20,7 @@ interface DownloadProgressProps {
   onCancel: () => void;
   onRetry: () => void;
   onClose: () => void;
+  downloadPath: string | null;
 }
 
 export function DownloadProgress({
@@ -27,6 +28,7 @@ export function DownloadProgress({
   onCancel,
   onRetry,
   onClose,
+  downloadPath,
 }: DownloadProgressProps) {
   const parsedProgress =
     streamResult.type === "progress"
@@ -128,7 +130,7 @@ export function DownloadProgress({
               Complete
             </p>
             <p className="text-sm font-semibold mt-1 text-foreground">
-              Video saved to /storage folder
+              Video saved to {downloadPath || "/storage"} folder
             </p>
           </div>
           <Button

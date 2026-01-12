@@ -6,23 +6,25 @@ import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { youtubeInputURLSchema } from "../validators/video-url.validator";
 
-interface DownloaderFormProps {
+interface VideoURLFormProps {
   showReset: boolean;
   isSubmitting: boolean;
+  isDownloading?: boolean;
   error: string | null;
   onSubmit: (url: string) => Promise<void>;
   onReset: () => void;
   onDismissError: () => void;
 }
 
-export function DownloaderForm({
+export function VideoURLForm({
   showReset,
   isSubmitting,
+  isDownloading,
   error,
   onSubmit,
   onReset,
   onDismissError,
-}: DownloaderFormProps) {
+}: VideoURLFormProps) {
   const formId = useId();
 
   const form = useForm({
@@ -57,8 +59,9 @@ export function DownloaderForm({
                     onChange={(e) => {
                       field.handleChange(e.target.value);
                     }}
+                    disabled={isDownloading}
                     placeholder="Paste a YouTube link to extract..."
-                    className="h-16 pl-7 pr-32 rounded-2xl border-2 transition-all duration-300 focus-visible:ring-primary/30 focus-visible:shadow-2xl shadow-primary/10 text-base placeholder:text-muted-foreground/50 bg-background/80 backdrop-blur-sm relative"
+                    className="h-16 pl-7 pr-32 rounded-2xl border-2 transition-all duration-300 focus-visible:ring-primary/30 focus-visible:shadow-2xl shadow-primary/10 text-base placeholder:text-muted-foreground/50 bg-background/80 backdrop-blur-sm relative disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="absolute right-1.5 top-1.5 bottom-1.5 flex gap-1">
                     {showReset && (
@@ -66,7 +69,8 @@ export function DownloaderForm({
                         type="button"
                         variant="ghost"
                         onClick={onReset}
-                        className="h-full rounded-xl px-4 hover:bg-accent/50 transition-all duration-200 hover:scale-105"
+                        disabled={isDownloading}
+                        className="h-full rounded-xl px-4 hover:bg-accent/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <XIcon className="w-4 h-4" />
                       </Button>
@@ -80,7 +84,12 @@ export function DownloaderForm({
                         <Button
                           size="lg"
                           type="submit"
-                          disabled={!canSubmit || submitting || isSubmitting}
+                          disabled={
+                            !canSubmit ||
+                            submitting ||
+                            isSubmitting ||
+                            isDownloading
+                          }
                           className="h-full aspect-square rounded-xl transition-all duration-200 active:scale-[0.96] font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 bg-primary hover:bg-primary/90"
                         >
                           {submitting || isSubmitting ? (
