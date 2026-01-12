@@ -85,7 +85,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
     if (result.success && result.data) {
       setSelectedPath(result.data);
       localStorage.setItem(STORAGE_KEY, result.data);
-      onPathChange?.(result.data);
+      onPathChange(result.data);
     } else if (result.error && result.error !== "Dialog cancelled") {
       setError(result.error);
     }
@@ -94,7 +94,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
   const handleClear = () => {
     setSelectedPath(null);
     localStorage.removeItem(STORAGE_KEY);
-    onPathChange?.(null);
+    onPathChange(null);
   };
 
   const handleDismissError = () => {
