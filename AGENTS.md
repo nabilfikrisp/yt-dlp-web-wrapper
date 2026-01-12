@@ -6,7 +6,7 @@
 - **The Map is Open:** You MAY use `ls` to view directory structures.
 - **The Content is Locked:** DO NOT use `ReadFile` or `SearchText` without explicit consent.
 - **Consent Flow:** YYou may request to read multiple files at once if they are part of the same data flow (e.g., Schema + Route + Component), provided you justify the batch in one sentence.
-- **No Deep Scans:** Do not run recursive searches or broad greps.
+- **No Deep Scans:** Do not run recursive searches or broad grep/greps.
 - **Dependency Guard:** NEVER suggest or run library installations. I handle all `npm` tasks.
 - **Privacy:** NEVER attempt to access `.env` or sensitive configs.
 
@@ -18,9 +18,15 @@
 - **SSOT Priority:** Use central schemas as the absolute reference. **Maintain a clear, one-way data flow**; never duplicate definitions or create local state that bypasses the source of truth.
 - **Native First:** Prioritize native Web APIs or existing Framework features over adding new third-party utility libraries (e.g., use native Array methods instead of lodash).
 
+## Logic & Quality
+
+- **Self-Documenting Code:** Write code that is clear enough to be understood without extensive comments.
+- **Meaningful Naming:** Use descriptive, intention-revealing names for variables and functions (e.g., `isUserEligibleForDiscount` instead of `check`). Avoid "magic numbers" by using named constants.
+
 ## Tech Stack
 
 - **Framework:** TanStack Start
 - **State/Forms:** TanStack Form (and Zod)
 - **UI:** shadcn/ui, Tailwind CSS
 - **Machine Libs:** `yt-dlp`, `zenity` (Linux)
+- **Package Manager:** pnpm
