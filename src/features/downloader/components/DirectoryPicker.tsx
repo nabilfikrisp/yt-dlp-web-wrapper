@@ -1,7 +1,7 @@
 import { Folder, FolderOpen, Info, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { getNativeDirectoryAction } from "@/server/actions/directory-picker.actions";
 
@@ -61,7 +61,6 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
   return (
     <div className="space-y-4">
       <Field>
-        <FieldLabel>Download Destination</FieldLabel>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
@@ -102,10 +101,6 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
             </Button>
           )}
         </div>
-        <FieldDescription>
-          Select where videos will be saved. Leave empty to use default storage
-          folder.
-        </FieldDescription>
       </Field>
 
       {error && (
