@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { VideoURLForm } from "@/features/downloader/components/VideoURLForm";
 import { MetadataDisplay } from "@/features/downloader/components/MetadataDisplay";
+import { VideoURLForm } from "@/features/downloader/components/VideoURLForm";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
 import {
   getVideoMetadataAction,
@@ -68,7 +68,7 @@ function DownloaderPage() {
               YT-DLP
             </h1>
             <p className="text-muted-foreground text-sm uppercase tracking-widest">
-              Web Extractor
+              Web UI
             </p>
           </div>
         )}
