@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { getNativeDirectoryAction } from "@/server/actions/directory-picker.actions";
-import type { DirectoryPickerProps } from "../types/directory-picker.types";
 
 const STORAGE_KEY = "yt-dlp-download-path";
+
+interface DirectoryPickerProps {
+  onPathChange: (path: string | null) => void;
+}
 
 export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(() => {
@@ -23,7 +26,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         setSelectedPath(saved);
-        onPathChange?.(saved);
+        onPathChange(saved);
       }
     }
   }, [onPathChange]);
@@ -76,7 +79,7 @@ export function DirectoryPicker({ onPathChange }: DirectoryPickerProps) {
             variant="outline"
             onClick={handleBrowse}
             disabled={isLoading}
-            className="w-[100px] shrink-0"
+            className="w-25 shrink-0"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
