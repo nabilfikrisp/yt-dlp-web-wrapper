@@ -6,4 +6,8 @@ export const downloadRequestSchema = z.object({
   audioFormatId: z.string().nullable(),
   subId: z.string().nullable(),
   downloadPath: z.string().optional(),
+  displayData: z.object({
+    title: z.string(),
+    thumbnail: z.string(),
+  }),
 });

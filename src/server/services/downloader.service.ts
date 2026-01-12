@@ -21,6 +21,7 @@ import {
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
+import { saveDownloadSession } from "../utils/download-session.utils";
 
 interface YtDlpFormat {
   format_id: string;
@@ -189,6 +190,7 @@ export async function* executeDownloadStream(
 
   try {
     const { args } = await prepareDownload(config);
+    await saveDownloadSession("session", config);
 
     yield* runYtDlpStream(args, signal);
 

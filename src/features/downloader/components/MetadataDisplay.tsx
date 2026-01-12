@@ -89,6 +89,10 @@ export function MetadataDisplay({
           audioFormatId: state.selectedAudio,
           subId: state.selectedSub,
           downloadPath: downloadPath,
+          displayData: {
+            title: data.title,
+            thumbnail: data.thumbnail,
+          },
         }),
         signal: ctrl.signal,
       });

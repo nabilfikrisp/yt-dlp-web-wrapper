@@ -10,6 +10,10 @@ export interface DownloadRequest {
   audioFormatId: string | null;
   subId: string | null;
   downloadPath?: string;
+  displayData: {
+    title: string;
+    thumbnail: string;
+  };
 }
 
 export interface VideoMetadataRequest {
