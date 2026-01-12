@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { getNativeDirectoryAction } from "@/server/actions/directory-picker.actions";
 import { APP_CONFIG } from "@/shared/config/app.config";
 
-const STORAGE_KEY = "yt-dlp-download-path";
 const DEBOUNCE_MS = 500;
 
 interface DirectoryPickerProps {
@@ -22,7 +21,7 @@ export function DirectoryPicker({ onPathChange, value }: DirectoryPickerProps) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEY);
       if (saved) {
         setSelectedPath(saved);
         onPathChange(saved);
@@ -38,36 +37,33 @@ export function DirectoryPicker({ onPathChange, value }: DirectoryPickerProps) {
     };
   }, []);
 
+  const savePath = (path?: string) => {
+    if (path) {
+      localStorage.setItem(APP_CONFIG.STORAGE_KEY, path);
+      onPathChange(path);
+    } else {
+      localStorage.removeItem(APP_CONFIG.STORAGE_KEY);
+      onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPath = e.target.value.trim() || null;
-    setSelectedPath(newPath || "");
+    const newPath = e.target.value.trim() || "";
+    setSelectedPath(newPath);
 
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
     debounceTimer.current = setTimeout(() => {
-      if (newPath) {
-        localStorage.setItem(STORAGE_KEY, newPath);
-        onPathChange(newPath);
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-        onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
-      }
+      savePath(newPath);
     }, DEBOUNCE_MS);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && debounceTimer.current) {
       clearTimeout(debounceTimer.current);
-      const newPath = selectedPath?.trim() || null;
-      if (newPath) {
-        localStorage.setItem(STORAGE_KEY, newPath);
-        onPathChange(newPath);
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-        onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
-      }
+      savePath(selectedPath?.trim());
     }
   };
 
@@ -81,8 +77,7 @@ export function DirectoryPicker({ onPathChange, value }: DirectoryPickerProps) {
 
     if (result.success && result.data) {
       setSelectedPath(result.data);
-      localStorage.setItem(STORAGE_KEY, result.data);
-      onPathChange(result.data);
+      savePath(result.data);
     } else if (result.error && result.error !== "Dialog cancelled") {
       setError(result.error);
     }
@@ -90,8 +85,7 @@ export function DirectoryPicker({ onPathChange, value }: DirectoryPickerProps) {
 
   const handleClear = () => {
     setSelectedPath(APP_CONFIG.DEFAULT_STORAGE_PATH);
-    localStorage.removeItem(STORAGE_KEY);
-    onPathChange(APP_CONFIG.DEFAULT_STORAGE_PATH);
+    savePath();
   };
 
   const handleDismissError = () => {
