@@ -58,7 +58,9 @@ export function createFormatSelection(
 export async function prepareDownload(
   config: DownloadRequest,
 ): Promise<DownloadPrepared> {
-  const storagePath = path.resolve(APP_SERVER_CONFIG.STORAGE_PATH);
+  const storagePath = path.resolve(
+    config.downloadPath || APP_SERVER_CONFIG.STORAGE_PATH,
+  );
 
   await fs.mkdir(storagePath, { recursive: true });
 

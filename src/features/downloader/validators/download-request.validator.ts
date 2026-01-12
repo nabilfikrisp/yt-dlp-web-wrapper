@@ -5,4 +5,5 @@ export const downloadRequestSchema = z.object({
   videoFormatId: z.string().nullable(),
   audioFormatId: z.string().nullable(),
   subId: z.string().nullable(),
+  downloadPath: z.string().optional(),
 });

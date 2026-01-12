@@ -14,6 +14,7 @@ import type {
 import { useMetadataManager } from "../hooks/useMetadataManager";
 import type { VideoMetadata } from "../types/video-metadata.types";
 import { formatBitToMB } from "../utils/format.utils";
+import { DirectoryPicker } from "./DirectoryPicker";
 import { DownloadProgress } from "./ui/DownloadProgress";
 import { SelectionBadge } from "./ui/SelectionBadge";
 import { SelectionButton } from "./ui/SelectionButton";
@@ -38,6 +39,12 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
   });
 
   const [controller, setController] = useState<AbortController | null>(null);
+  const [downloadPath, setDownloadPath] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("yt-dlp-download-path");
+    }
+    return null;
+  });
 
   async function streamDownload() {
     if (controller) {
@@ -65,6 +72,7 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
           videoFormatId: state.selectedVideo,
           audioFormatId: state.selectedAudio,
           subId: state.selectedSub,
+          downloadPath: downloadPath,
         }),
         signal: ctrl.signal,
       });
@@ -252,6 +260,8 @@ export function MetadataDisplay({ data, videoUrl }: MetadataDisplayProps) {
             </span>
           </div>
         </div>
+
+        <DirectoryPicker onPathChange={setDownloadPath} />
 
         {(streamResult.type === "idle" || streamResult.type === "preparing") &&
           (streamResult.type === "preparing" ? (

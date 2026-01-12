@@ -9,6 +9,7 @@ export interface DownloadRequest {
   videoFormatId: string | null;
   audioFormatId: string | null;
   subId: string | null;
+  downloadPath?: string;
 }
 
 export interface VideoMetadataRequest {

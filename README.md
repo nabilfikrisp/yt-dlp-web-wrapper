@@ -15,6 +15,10 @@ Web interface for downloading YouTube videos with yt-dlp.
 - Node.js 20+
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) installed
 - [ffmpeg](https://ffmpeg.org/) installed (for merging video+audio)
+- **For Folder Picking:**
+  - **Windows:** PowerShell (Built-in)
+  - **Linux:** `sudo apt install zenity`
+  - **macOS:** AppleScript (Built-in)
 
 ## Installation
 

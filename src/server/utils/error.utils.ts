@@ -14,6 +14,11 @@ export const ERROR_MESSAGES = {
   NO_FORMAT_SELECTED: "Please select a video or audio format",
   RATE_LIMIT_HIT: "Rate limit hit. Try again in an hour.",
   UNEXPECTED_SERVER_ERROR: "An unexpected server error occurred",
+  DIALOG_CANCELLED: "Dialog cancelled",
+  DIALOG_FAILED: "Failed to open directory dialog",
+  PLATFORM_NOT_SUPPORTED: "Platform not supported for directory picker",
+  COMMAND_NOT_FOUND:
+    "Required command not found. Install zenity: sudo apt install zenity",
 } as const;
 
 export function handleServerError(error: unknown) {
