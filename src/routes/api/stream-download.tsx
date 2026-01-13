@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { downloadRequestSchema } from "@/features/downloader/validators/download-request.validator";
+import {
+  type DownloadRequest,
+  downloadRequestSchema,
+} from "@/features/downloader/validators/download-request.validator";
 import { executeDownloadStream } from "@/server/services/downloader.service";
 import { ERROR_MESSAGES } from "@/server/utils/error.utils";
 import { logger } from "@/server/utils/logger.utils";
 import { APP_CONFIG } from "@/shared/config/app.config";
-import type { DownloadRequest } from "@/shared/types/api.types";
 
 function formatSSEMessage(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;

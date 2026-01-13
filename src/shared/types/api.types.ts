@@ -4,18 +4,6 @@ export interface ServerResponse<T> {
   error: string | null;
 }
 
-export interface DownloadRequest {
-  url: string;
-  videoFormatId: string | null;
-  audioFormatId: string | null;
-  subId: string | null;
-  downloadPath?: string;
-  displayData: {
-    title: string;
-    thumbnail: string;
-  };
-}
-
 export interface VideoMetadataRequest {
   url: string;
 }

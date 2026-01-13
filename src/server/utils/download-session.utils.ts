@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { DownloadRequest } from "@/shared/types/api.types";
+import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
 
 // TODO: GET FILENAME FROM YT-DLP
 

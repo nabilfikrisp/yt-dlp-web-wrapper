@@ -85,8 +85,10 @@ export function MetadataDisplay({
         },
         body: JSON.stringify({
           url: videoUrl,
-          videoFormatId: state.selectedVideo,
-          audioFormatId: state.selectedAudio,
+          videoFormatId: state.selectedVideo?.formatId,
+          videoLabel: state.selectedVideoLabel,
+          audioFormatId: state.selectedAudio?.formatId,
+          audioLabel: state.selectedAudioLabel,
           subId: state.selectedSub,
           downloadPath: downloadPath,
           displayData: {
@@ -202,8 +204,8 @@ export function MetadataDisplay({
                 {view.sortedVideo.map((f) => (
                   <SelectionButton
                     key={f.formatId}
-                    isSelected={state.selectedVideo === f.formatId}
-                    onClick={() => actions.toggleVideo(f.formatId)}
+                    isSelected={state.selectedVideo === f}
+                    onClick={() => actions.toggleVideo(f)}
                     title={f.resolution}
                     desc={`${f.ext.toUpperCase()} Quality`}
                     rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
@@ -218,9 +220,9 @@ export function MetadataDisplay({
                 {view.sortedAudio.map((f) => (
                   <SelectionButton
                     key={f.formatId}
-                    isSelected={state.selectedAudio === f.formatId}
-                    onClick={() => actions.toggleAudio(f.formatId)}
-                    title={f.resolution ? f.resolution.split(",")[0] : "Audio"}
+                    isSelected={state.selectedAudio === f}
+                    onClick={() => actions.toggleAudio(f)}
+                    title={f.resolution ? f.resolution : "Audio"}
                     desc={`${f.ext.toUpperCase()} Audio`}
                     rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
                   />
@@ -250,19 +252,19 @@ export function MetadataDisplay({
       <div className="space-y-4">
         <div className="flex items-center gap-3 h-14 p-1 rounded-xl bg-linear-to-r from-muted/30 to-muted/10 backdrop-blur-sm border border-border/30">
           <SelectionBadge
-            icon={<Monitor className="w-4 h-4" />}
+            icon={<Monitor className="w-3 h-3" />}
             label={view.summary.videoLabel}
             size={view.summary.videoSize}
             active={!!state.selectedVideo}
           />
           <SelectionBadge
-            icon={<Music className="w-4 h-4" />}
+            icon={<Music className="w-3 h-3" />}
             label={view.summary.audioLabel}
             size={view.summary.audioSize}
             active={!!state.selectedAudio}
           />
           <SelectionBadge
-            icon={<Languages className="w-4 h-4" />}
+            icon={<Languages className="w-3 h-3" />}
             label={view.summary.subLabel}
             active={!!state.selectedSub}
           />

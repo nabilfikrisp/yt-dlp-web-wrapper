@@ -17,7 +17,7 @@ export function SelectionBadge({
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-300 h-full flex-1 min-w-0",
+        "flex items-center gap-2.5 px-2 py-1.5 rounded-xl border transition-all duration-300 h-full flex-1 min-w-0",
         active
           ? "bg-linear-to-br from-card to-card/50 border-border shadow-md shadow-primary/5"
           : "bg-muted/20 border-muted-foreground/15 hover:bg-muted/40 hover:border-muted-foreground/25 hover:shadow-sm cursor-pointer",
@@ -25,7 +25,7 @@ export function SelectionBadge({
     >
       <div
         className={cn(
-          "p-1.5 rounded-lg transition-all duration-300",
+          "p-1 rounded-lg transition-all duration-300",
           active
             ? "bg-primary/10 text-primary shadow-sm"
             : "text-muted-foreground/50",
@@ -36,7 +36,7 @@ export function SelectionBadge({
       <div className="flex flex-col min-w-0">
         <span
           className={cn(
-            "text-xs font-bold leading-none truncate transition-colors duration-300",
+            "text-xs font-semibold leading-none truncate transition-colors duration-300",
             active ? "text-foreground" : "text-muted-foreground/70",
           )}
         >

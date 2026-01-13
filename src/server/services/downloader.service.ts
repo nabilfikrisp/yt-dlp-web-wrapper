@@ -6,9 +6,9 @@ import type {
   VideoFormat,
   VideoMetadata,
 } from "@/features/downloader/types/video-metadata.types";
+import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
 import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
 import type {
-  DownloadRequest,
   ServerResponse,
   StreamError,
   StreamProgress,
@@ -21,7 +21,6 @@ import {
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
-import { saveDownloadSession } from "../utils/download-session.utils";
 
 interface YtDlpFormat {
   format_id: string;
@@ -190,7 +189,6 @@ export async function* executeDownloadStream(
 
   try {
     const { args } = await prepareDownload(config);
-    await saveDownloadSession("session", config);
 
     yield* runYtDlpStream(args, signal);
 
