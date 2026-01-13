@@ -7,19 +7,22 @@ import {
   getVideoMetadataAction,
   getYTVersionAction,
 } from "@/server/actions/downloader.actions";
+import { getUnfinishedDownloads } from "@/server/utils/session.utils";
 
 export const Route = createFileRoute("/")({
   component: DownloaderPage,
   loader: async () => {
     const res = await getYTVersionAction();
+    const unfinishedDownloads = await getUnfinishedDownloads();
     return {
       version: res.success ? res.data : null,
+      unfinishedDownloads,
     };
   },
 });
 
 function DownloaderPage() {
-  const { version } = Route.useLoaderData();
+  const { version, unfinishedDownloads } = Route.useLoaderData();
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +85,17 @@ function DownloaderPage() {
           onReset={handleReset}
           onDismissError={handleDismissError}
         />
+
+        {!metadata && unfinishedDownloads.length > 0 && (
+          <>
+            <p className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
+              {unfinishedDownloads.length} unfinished downloads
+            </p>
+            <div className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
+              {unfinishedDownloads.map((d) => d.fileName)}
+            </div>
+          </>
+        )}
 
         {metadata && (
           <MetadataDisplay

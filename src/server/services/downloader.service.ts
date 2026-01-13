@@ -21,7 +21,7 @@ import {
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
-import { saveDownloadSession } from "../utils/download-session.utils";
+import { saveDownloadSession } from "../utils/session.utils";
 
 interface YtDlpFormat {
   format_id: string;
