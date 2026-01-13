@@ -21,6 +21,7 @@ import {
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
+import { saveDownloadSession } from "../utils/download-session.utils";
 
 interface YtDlpFormat {
   format_id: string;
@@ -46,6 +47,7 @@ interface YtDlpRawJson {
 interface DownloadPrepared {
   args: string[];
   storagePath: string;
+  filename: string;
 }
 
 export function createFormatSelection(
@@ -63,8 +65,8 @@ export async function prepareDownload(
   );
 
   await fs.mkdir(storagePath, { recursive: true });
-
-  const outputPath = path.join(storagePath, "%(title)s.%(ext)s");
+  const filename = `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}`;
+  const outputPath = path.join(storagePath, `${filename}.%(ext)s`);
 
   const formatSelection = createFormatSelection(
     config.videoFormatId,
@@ -88,7 +90,7 @@ export async function prepareDownload(
     args.push("--write-subs", "--sub-langs", config.subId);
   }
 
-  return { args, storagePath };
+  return { args, storagePath, filename };
 }
 
 export async function executeDownload(
@@ -188,8 +190,8 @@ export async function* executeDownloadStream(
   logger.info("Starting download stream", { url: config.url });
 
   try {
-    const { args } = await prepareDownload(config);
-
+    const { args, filename } = await prepareDownload(config);
+    await saveDownloadSession(filename, config);
     yield* runYtDlpStream(args, signal);
 
     yield {

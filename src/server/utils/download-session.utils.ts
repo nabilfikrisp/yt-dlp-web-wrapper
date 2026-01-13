@@ -8,7 +8,7 @@ export async function saveDownloadSession(
   fileName: string,
   data: DownloadRequest,
 ) {
-  const dirPath = path.join(process.cwd(), "storage", "sessions");
+  const dirPath = path.join(process.cwd(), "storage");
   const filePath = path.join(dirPath, `${fileName}.json`);
 
   try {
