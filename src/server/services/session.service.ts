@@ -3,13 +3,18 @@ import {
   readdir,
   readFile,
   rm,
+  rmdir,
   unlink,
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
-import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
+import type {
+  DownloadRequest,
+  DownloadRequestWithSession,
+} from "@/features/downloader/validators/download-request.validator";
+import { SESSION_TAG } from "@/shared/config/session.config";
 
-const GLOBAL_REGISTRY_FILE_PATH = path.join(
+const GLOBAL_REGISTRY_FILE_PATH = path.resolve(
   process.cwd(),
   "storage",
   "registry",
@@ -17,28 +22,37 @@ const GLOBAL_REGISTRY_FILE_PATH = path.join(
 );
 
 /**
- * Persists the download metadata locally as a sidecar and bookmarks the
- * folder location in the global registry to enable later resumption.
+ * Persists the download metadata locally.
+ * Note: The UI/Caller must ensure isolatedSessionFolder ends with SESSION_TAG
  */
 export async function saveDownloadSession(
   isolatedSessionFolder: string,
   sessionIdentity: string,
   downloadMetadata: DownloadRequest,
 ) {
+  // GUARD: Ensure we are only saving into a tagged session folder
+  if (!isolatedSessionFolder.endsWith(SESSION_TAG)) {
+    throw new Error(
+      "Security Violation: Target folder must carry the session tag.",
+    );
+  }
+
   const sidecarMetadataPath = path.join(
     isolatedSessionFolder,
     `${sessionIdentity}.json`,
   );
 
   try {
-    // 1. Prepare the physical location
     await mkdir(isolatedSessionFolder, { recursive: true });
 
-    // 2. Save the local sidecar (The data source for this specific video)
-    const serializedMetadata = JSON.stringify(downloadMetadata, null, 2);
+    const metadataValue: DownloadRequestWithSession = {
+      ...downloadMetadata,
+      isolatedSessionFolder,
+      sessionIdentity,
+    };
+    const serializedMetadata = JSON.stringify(metadataValue, null, 2);
     await writeFile(sidecarMetadataPath, serializedMetadata, "utf-8");
 
-    // 3. Link this folder to the global lookup list
     await bookmarkSessionFolderInRegistry(isolatedSessionFolder);
 
     return sidecarMetadataPath;
@@ -51,10 +65,8 @@ export async function saveDownloadSession(
   }
 }
 
-/**
- * Internal helper to ensure the app 'remembers' where this session lives. This function tied to saveDownloadSession
- */
 async function bookmarkSessionFolderInRegistry(folderPath: string) {
+  const absolutePath = path.resolve(folderPath);
   const registryDirectory = path.dirname(GLOBAL_REGISTRY_FILE_PATH);
   await mkdir(registryDirectory, { recursive: true });
 
@@ -64,28 +76,36 @@ async function bookmarkSessionFolderInRegistry(folderPath: string) {
   ).catch(() => "[]");
   const trackedSessionFolders: string[] = JSON.parse(existingRegistryContent);
 
-  const isAlreadyTracked = trackedSessionFolders.includes(folderPath);
+  const isAlreadyTracked = trackedSessionFolders.some(
+    (p) => path.resolve(p) === absolutePath,
+  );
 
   if (!isAlreadyTracked) {
-    trackedSessionFolders.push(folderPath);
-    const updatedRegistryJson = JSON.stringify(trackedSessionFolders, null, 2);
-    await writeFile(GLOBAL_REGISTRY_FILE_PATH, updatedRegistryJson, "utf-8");
+    trackedSessionFolders.push(absolutePath);
+    await updateRegistryFile(trackedSessionFolders);
   }
 }
 
-export async function getUnfinishedDownloads(): Promise<DownloadRequest[]> {
+export async function getUnfinishedDownloads(): Promise<
+  DownloadRequestWithSession[]
+> {
   const registryContent = await readFile(
     GLOBAL_REGISTRY_FILE_PATH,
     "utf-8",
   ).catch(() => "[]");
   const trackedSessionFolders: string[] = JSON.parse(registryContent);
 
-  const activeDownloads: DownloadRequest[] = [];
+  const activeDownloads: DownloadRequestWithSession[] = [];
   const validFoldersToKeep: string[] = [];
 
   for (const sessionFolder of trackedSessionFolders) {
     try {
-      const folderFiles = await readdir(sessionFolder);
+      const absoluteFolder = path.resolve(sessionFolder);
+
+      // GUARD: Skip any folder in registry that doesn't have our tag
+      if (!absoluteFolder.endsWith(SESSION_TAG)) continue;
+
+      const folderFiles = await readdir(absoluteFolder);
 
       const sidecarJsonName = folderFiles.find((name) =>
         name.endsWith(".json"),
@@ -94,49 +114,125 @@ export async function getUnfinishedDownloads(): Promise<DownloadRequest[]> {
         name.endsWith(".part"),
       );
 
-      /**
-       * RECONCILIATION LOGIC (Old syncDiskSessions)
-       * If both files exist, it's a valid session.
-       * If one is missing, it's an orphan and we clean it up.
-       */
       if (sidecarJsonName && hasIncompletePartFile) {
-        const sidecarPath = path.join(sessionFolder, sidecarJsonName);
+        const sidecarPath = path.join(absoluteFolder, sidecarJsonName);
         const metadataContent = await readFile(sidecarPath, "utf-8");
 
         activeDownloads.push({
           ...JSON.parse(metadataContent),
-          storagePath: sessionFolder,
+          storagePath: absoluteFolder,
         });
 
-        validFoldersToKeep.push(sessionFolder);
+        validFoldersToKeep.push(absoluteFolder);
       } else {
-        // Clean up orphaned files within the folder
-        await cleanupOrphanedSession(sessionFolder, folderFiles);
+        // Only cleanup if it's a tagged folder
+        await cleanupOrphanedSession(absoluteFolder, folderFiles);
       }
     } catch (_) {
-      // Folder was moved or deleted; automatically pruned by not adding to validFoldersToKeep
+      // Folder missing/inaccessible
     }
   }
 
-  // Update registry: Removes references to finished, deleted, or orphaned sessions
   await updateRegistryFile(validFoldersToKeep);
-
   return activeDownloads;
 }
 
 /**
- * Self-Documenting Helper: Cleans up partial files if the metadata is lost
+ * Safe cleanup: Only unlinks if the folder name is verified.
  */
 async function cleanupOrphanedSession(folderPath: string, files: string[]) {
+  const absolutePath = path.resolve(folderPath);
+
+  // GUARD: The Ultimate Safety - Never touch a folder without the tag
+  if (!absolutePath.endsWith(SESSION_TAG)) return;
+
   for (const file of files) {
-    if (file.endsWith(".part") || file.endsWith(".json")) {
-      await unlink(path.join(folderPath, file)).catch(() => {});
+    // Only delete specific yt-dlp related extensions
+    if (
+      file.endsWith(".part") ||
+      file.endsWith(".json") ||
+      file.endsWith(".ytdl")
+    ) {
+      await unlink(path.join(absolutePath, file)).catch(() => {});
     }
   }
-  // Optionally remove the empty directory
-  await rm(folderPath, { recursive: true, force: true }).catch(() => {});
+
+  await rm(absolutePath, { recursive: false }).catch(() => {});
 }
 
 async function updateRegistryFile(folders: string[]) {
-  await writeFile(GLOBAL_REGISTRY_FILE_PATH, JSON.stringify(folders, null, 2));
+  const normalizedFolders = folders.map((f) => path.resolve(f));
+  await writeFile(
+    GLOBAL_REGISTRY_FILE_PATH,
+    JSON.stringify(normalizedFolders, null, 2),
+  );
+}
+
+/**
+ * Completely removes a download session safely.
+ * Logic: Verify tag -> Drain folder contents -> Non-recursive folder remove -> Update Registry.
+ */
+export async function deleteDownloadSession(isolatedSessionFolder: string) {
+  try {
+    const absoluteTarget = path.resolve(isolatedSessionFolder);
+    const folderName = path.basename(absoluteTarget);
+
+    // 1. SIGNATURE GUARD: Mandatory tag check
+    // This ensures we only touch folders specifically marked by our app.
+    if (!folderName.endsWith(SESSION_TAG)) {
+      throw new Error(
+        "Safety Block: This folder was not created by the Download Manager.",
+      );
+    }
+
+    // 2. DIRECTORY GUARD: Prevent deleting sensitive locations
+    const projectRoot = path.resolve(process.cwd());
+    const isInsideProjectSrc = absoluteTarget.includes(
+      path.join(projectRoot, "src"),
+    );
+
+    if (absoluteTarget === projectRoot || isInsideProjectSrc) {
+      throw new Error("Safety Block: Target is a protected system directory.");
+    }
+
+    // 3. THE "DRAIN" STEP: Handle hidden files (.DS_Store, etc.)
+    // Instead of recursive rm on the session folder, we remove its children first.
+    const allInternalItems = await readdir(absoluteTarget).catch(() => []);
+
+    for (const item of allInternalItems) {
+      const itemPath = path.join(absoluteTarget, item);
+      // We use recursive here because some items might be sub-folders (like yt-dlp temp dirs)
+      // But it's safe because we are locked INSIDE the tagged folder.
+      await rm(itemPath, { recursive: true, force: true }).catch(() => {
+        // Log if a specific file is locked by another process
+        console.warn(`Could not remove internal item: ${item}`);
+      });
+    }
+
+    // 4. FOLDER REMOVAL: Final cleanup
+    // We use recursive: false. If this fails now, it means the OS has a lock
+    // on the directory itself (likely yt-dlp is still active).
+    await rmdir(absoluteTarget, { recursive: false });
+
+    // 5. REGISTRY UPDATE
+    const registryContent = await readFile(
+      GLOBAL_REGISTRY_FILE_PATH,
+      "utf-8",
+    ).catch(() => "[]");
+
+    const trackedFolders: string[] = JSON.parse(registryContent);
+    const updatedFolders = trackedFolders.filter(
+      (p) => path.resolve(p) !== absoluteTarget,
+    );
+
+    await updateRegistryFile(updatedFolders);
+
+    return { success: true };
+  } catch (error) {
+    console.error(
+      `Failed to delete session at ${isolatedSessionFolder}:`,
+      error,
+    );
+    throw error;
+  }
 }

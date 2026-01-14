@@ -4,8 +4,9 @@ import { MetadataDisplay } from "@/features/downloader/components/MetadataDispla
 import { UnfinishedDownloads } from "@/features/downloader/components/UnfinishedDownloads";
 import { VideoURLForm } from "@/features/downloader/components/VideoURLForm";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
-import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
+import type { DownloadRequestWithSession } from "@/features/downloader/validators/download-request.validator";
 import {
+  deleteDownloadAction,
   getUnfinishedDownloadsAction,
   getVideoMetadataAction,
   getYTVersionAction,
@@ -31,9 +32,10 @@ function DownloaderPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [unfinishedDownloads] = useState<DownloadRequest[]>(initialDownloads);
+  const [unfinishedDownloads, setUnfinishedDownloads] =
+    useState<DownloadRequestWithSession[]>(initialDownloads);
   const [currentDownload, setCurrentDownload] =
-    useState<DownloadRequest | null>(null);
+    useState<DownloadRequestWithSession | null>(null);
 
   const handleReset = () => {
     setMetadata(null);
@@ -50,7 +52,7 @@ function DownloaderPage() {
     setIsDownloading(downloading);
   };
 
-  const handleResume = async (download: DownloadRequest) => {
+  const handleResume = async (download: DownloadRequestWithSession) => {
     setIsSubmitting(true);
     setError(null);
     setCurrentDownload(download);
@@ -68,8 +70,50 @@ function DownloaderPage() {
     setIsSubmitting(false);
   };
 
-  const handleDelete = (url: string) => {
-    console.log("Delete:", url);
+  const handleDelete = async (isolatedSessionFolderTarget: string) => {
+    const targetSession = unfinishedDownloads.find(
+      (d) => d.isolatedSessionFolder === isolatedSessionFolderTarget,
+    );
+    const sessionPath = targetSession?.downloadPath;
+    const isolatedSessionFolderPath = targetSession?.isolatedSessionFolder;
+
+    if (!sessionPath || !isolatedSessionFolderPath) {
+      setError(
+        "Missing session path: physical files cannot be located for deletion.",
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const deletionResult = await deleteDownloadAction({
+        data: isolatedSessionFolderPath,
+      });
+
+      if (!deletionResult.success) {
+        throw new Error(
+          deletionResult.error ?? "Server failed to purge download session.",
+        );
+      }
+
+      const remainingDownloads = unfinishedDownloads.filter(
+        (d) => d.isolatedSessionFolder !== isolatedSessionFolderTarget,
+      );
+      setUnfinishedDownloads(remainingDownloads);
+
+      const isCurrentViewDeleted = videoUrl === isolatedSessionFolderTarget;
+      if (isCurrentViewDeleted) {
+        handleReset();
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown deletion failure.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async (url: string) => {

@@ -15,3 +15,7 @@ export const downloadRequestSchema = z.object({
 });
 
 export type DownloadRequest = z.infer<typeof downloadRequestSchema>;
+export type DownloadRequestWithSession = DownloadRequest & {
+  isolatedSessionFolder: string;
+  sessionIdentity: string;
+};

@@ -22,6 +22,7 @@ import {
 import { logger } from "../utils/logger.utils";
 import { saveDownloadSession } from "./session.service";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
+import { SESSION_TAG } from "@/shared/config/session.config";
 
 interface YtDlpFormat {
   format_id: string;
@@ -66,7 +67,7 @@ export async function prepareDownload(
 
   // Sanitize OS-unsafe characters
   const sessionIdentity =
-    `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}`.replace(
+    `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}_${SESSION_TAG}`.replace(
       /[<>:"/\\|?*]/g,
       "",
     );
