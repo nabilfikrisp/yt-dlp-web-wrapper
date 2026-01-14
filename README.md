@@ -9,6 +9,7 @@ Web interface for downloading YouTube videos with yt-dlp.
 - Stream downloads with real-time progress
 - Automatic metadata fetching
 - Browser folder picker (no config files)
+- Resumeable unfinished downloads
 
 ## Requirements
 

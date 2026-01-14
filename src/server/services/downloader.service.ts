@@ -20,8 +20,8 @@ import {
   handleStreamError,
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
+import { saveDownloadSession } from "./session.service";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
-import { saveDownloadSession } from "../utils/session.utils";
 
 interface YtDlpFormat {
   format_id: string;
@@ -60,37 +60,58 @@ export function createFormatSelection(
 export async function prepareDownload(
   config: DownloadRequest,
 ): Promise<DownloadPrepared> {
-  const storagePath = path.resolve(
+  const downloadBaseDirectory = path.resolve(
     config.downloadPath || APP_SERVER_CONFIG.STORAGE_PATH,
   );
 
-  await fs.mkdir(storagePath, { recursive: true });
-  const filename = `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}`;
-  const outputPath = path.join(storagePath, `${filename}.%(ext)s`);
+  // Sanitize OS-unsafe characters
+  const sessionIdentity =
+    `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}`.replace(
+      /[<>:"/\\|?*]/g,
+      "",
+    );
 
-  const formatSelection = createFormatSelection(
+  const isolatedSessionFolder = path.join(
+    downloadBaseDirectory,
+    sessionIdentity,
+  );
+  await fs.mkdir(isolatedSessionFolder, { recursive: true });
+
+  const mediaOutputTemplate = path.join(
+    isolatedSessionFolder,
+    `${sessionIdentity}.%(ext)s`,
+  );
+
+  const selectedFormats = createFormatSelection(
     config.videoFormatId,
     config.audioFormatId,
   );
 
-  if (!formatSelection) {
-    throw new Error("No format selected");
+  if (!selectedFormats) {
+    throw new Error(
+      `Invalid format configuration for: ${config.displayData.title}`,
+    );
   }
 
-  const args = [
+  const ytDlpExecutionArgs = [
     "-f",
-    formatSelection,
+    selectedFormats,
     "-o",
-    outputPath,
+    mediaOutputTemplate,
     "--no-playlist",
+    "--part",
     config.url,
   ];
 
   if (config.subId) {
-    args.push("--write-subs", "--sub-langs", config.subId);
+    ytDlpExecutionArgs.push("--write-subs", "--sub-langs", config.subId);
   }
 
-  return { args, storagePath, filename };
+  return {
+    args: ytDlpExecutionArgs,
+    storagePath: isolatedSessionFolder,
+    filename: sessionIdentity,
+  };
 }
 
 export async function executeDownload(
@@ -190,8 +211,8 @@ export async function* executeDownloadStream(
   logger.info("Starting download stream", { url: config.url });
 
   try {
-    const { args, filename } = await prepareDownload(config);
-    await saveDownloadSession(filename, config);
+    const { args, filename, storagePath } = await prepareDownload(config);
+    await saveDownloadSession(storagePath, filename, config);
     yield* runYtDlpStream(args, signal);
 
     yield {

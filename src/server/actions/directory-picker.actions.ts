@@ -4,7 +4,7 @@ import { openDirectoryDialog } from "../services/directory-picker.service";
 import { logger } from "../utils/logger.utils";
 
 export const getNativeDirectoryAction = createServerFn({
-  method: "POST",
+  method: "GET",
 }).handler(async (): Promise<ServerResponse<string>> => {
   logger.info("Native directory action triggered");
   return await openDirectoryDialog();

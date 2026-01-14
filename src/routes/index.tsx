@@ -4,19 +4,19 @@ import { MetadataDisplay } from "@/features/downloader/components/MetadataDispla
 import { VideoURLForm } from "@/features/downloader/components/VideoURLForm";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
 import {
+  getUnfinishedDownloadsAction,
   getVideoMetadataAction,
   getYTVersionAction,
-} from "@/server/actions/downloader.actions";
-import { getUnfinishedDownloads } from "@/server/utils/session.utils";
+} from "@/server/actions";
 
 export const Route = createFileRoute("/")({
   component: DownloaderPage,
   loader: async () => {
     const res = await getYTVersionAction();
-    const unfinishedDownloads = await getUnfinishedDownloads();
+    const unfinishedDownloads = await getUnfinishedDownloadsAction();
     return {
       version: res.success ? res.data : null,
-      unfinishedDownloads,
+      unfinishedDownloads: unfinishedDownloads.data || [],
     };
   },
 });
@@ -92,7 +92,7 @@ function DownloaderPage() {
               {unfinishedDownloads.length} unfinished downloads
             </p>
             <div className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
-              {unfinishedDownloads.map((d) => d.fileName)}
+              {unfinishedDownloads.map((d) => d.displayData.title)}
             </div>
           </>
         )}
