@@ -1,5 +1,5 @@
 import { Download, Languages, Loader, Monitor, Music, X } from "lucide-react";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
@@ -25,15 +25,31 @@ import { VideoHeader } from "./ui/VideoHeader";
 interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
+  initialVideoFormatId?: string | null;
+  initialAudioFormatId?: string | null;
+  initialSubId?: string | null;
+  autoStart?: boolean;
   onDownloadStateChange?: (isDownloading: boolean) => void;
 }
 
 export function MetadataDisplay({
   data,
   videoUrl,
+  initialVideoFormatId,
+  initialAudioFormatId,
+  initialSubId,
+  autoStart,
   onDownloadStateChange,
 }: MetadataDisplayProps) {
-  const { state, actions, data: view } = useMetadataManager(data);
+  const {
+    state,
+    actions,
+    data: view,
+  } = useMetadataManager(data, {
+    initialVideoFormatId,
+    initialAudioFormatId,
+    initialSubId,
+  });
 
   const DOWNLOAD_BUTTON_BASE_CLASS =
     "h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group";
@@ -85,10 +101,16 @@ export function MetadataDisplay({
         },
         body: JSON.stringify({
           url: videoUrl,
-          videoFormatId: state.selectedVideo,
-          audioFormatId: state.selectedAudio,
+          videoFormatId: state.selectedVideo?.formatId,
+          videoLabel: state.selectedVideoLabel,
+          audioFormatId: state.selectedAudio?.formatId,
+          audioLabel: state.selectedAudioLabel,
           subId: state.selectedSub,
           downloadPath: downloadPath,
+          displayData: {
+            title: data.title,
+            thumbnail: data.thumbnail,
+          },
         }),
         signal: ctrl.signal,
       });
@@ -153,6 +175,19 @@ export function MetadataDisplay({
     setStreamResult(createIdleState());
   }
 
+  const hasAutoStarted = useRef(false);
+  // biome-ignore lint: autoStart only needs to run on mount when resuming
+  useLayoutEffect(() => {
+    if (
+      autoStart &&
+      !hasAutoStarted.current &&
+      (state.selectedVideo || state.selectedAudio)
+    ) {
+      hasAutoStarted.current = true;
+      streamDownload();
+    }
+  }, []);
+
   useLayoutEffect(() => {
     const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEY);
     if (saved) {
@@ -198,8 +233,8 @@ export function MetadataDisplay({
                 {view.sortedVideo.map((f) => (
                   <SelectionButton
                     key={f.formatId}
-                    isSelected={state.selectedVideo === f.formatId}
-                    onClick={() => actions.toggleVideo(f.formatId)}
+                    isSelected={state.selectedVideo === f}
+                    onClick={() => actions.toggleVideo(f)}
                     title={f.resolution}
                     desc={`${f.ext.toUpperCase()} Quality`}
                     rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
@@ -214,9 +249,9 @@ export function MetadataDisplay({
                 {view.sortedAudio.map((f) => (
                   <SelectionButton
                     key={f.formatId}
-                    isSelected={state.selectedAudio === f.formatId}
-                    onClick={() => actions.toggleAudio(f.formatId)}
-                    title={f.resolution ? f.resolution.split(",")[0] : "Audio"}
+                    isSelected={state.selectedAudio === f}
+                    onClick={() => actions.toggleAudio(f)}
+                    title={f.resolution ? f.resolution : "Audio"}
                     desc={`${f.ext.toUpperCase()} Audio`}
                     rightLabel={f.filesize ? formatBitToMB(f.filesize) : null}
                   />
@@ -246,19 +281,19 @@ export function MetadataDisplay({
       <div className="space-y-4">
         <div className="flex items-center gap-3 h-14 p-1 rounded-xl bg-linear-to-r from-muted/30 to-muted/10 backdrop-blur-sm border border-border/30">
           <SelectionBadge
-            icon={<Monitor className="w-4 h-4" />}
+            icon={<Monitor className="w-3 h-3" />}
             label={view.summary.videoLabel}
             size={view.summary.videoSize}
             active={!!state.selectedVideo}
           />
           <SelectionBadge
-            icon={<Music className="w-4 h-4" />}
+            icon={<Music className="w-3 h-3" />}
             label={view.summary.audioLabel}
             size={view.summary.audioSize}
             active={!!state.selectedAudio}
           />
           <SelectionBadge
-            icon={<Languages className="w-4 h-4" />}
+            icon={<Languages className="w-3 h-3" />}
             label={view.summary.subLabel}
             active={!!state.selectedSub}
           />

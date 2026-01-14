@@ -14,7 +14,6 @@
 
 - **Goal-Oriented:** Focus all logic and suggestions strictly on the specific task requested. Avoid unprompted structural changes or moving files.
 - **Announce Before Write:** State the target path and a one-sentence summary of the change before triggering `WriteFile`.
-- **Minimal Diffs:** Modify only the specific lines required for the fix. Do not rewrite existing logic or surrounding code unless necessary for the goal.
 - **SSOT Priority:** Use central schemas as the absolute reference. **Maintain a clear, one-way data flow**; never duplicate definitions or create local state that bypasses the source of truth.
 - **Native First:** Prioritize native Web APIs or existing Framework features over adding new third-party utility libraries (e.g., use native Array methods instead of lodash).
 

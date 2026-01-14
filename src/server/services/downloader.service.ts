@@ -6,9 +6,9 @@ import type {
   VideoFormat,
   VideoMetadata,
 } from "@/features/downloader/types/video-metadata.types";
+import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
 import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
 import type {
-  DownloadRequest,
   ServerResponse,
   StreamError,
   StreamProgress,
@@ -20,7 +20,9 @@ import {
   handleStreamError,
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
+import { saveDownloadSession } from "./session.service";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
+import { SESSION_TAG } from "@/shared/config/session.config";
 
 interface YtDlpFormat {
   format_id: string;
@@ -46,6 +48,7 @@ interface YtDlpRawJson {
 interface DownloadPrepared {
   args: string[];
   storagePath: string;
+  filename: string;
 }
 
 export function createFormatSelection(
@@ -58,37 +61,58 @@ export function createFormatSelection(
 export async function prepareDownload(
   config: DownloadRequest,
 ): Promise<DownloadPrepared> {
-  const storagePath = path.resolve(
+  const downloadBaseDirectory = path.resolve(
     config.downloadPath || APP_SERVER_CONFIG.STORAGE_PATH,
   );
 
-  await fs.mkdir(storagePath, { recursive: true });
+  // Sanitize OS-unsafe characters
+  const sessionIdentity =
+    `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}_${SESSION_TAG}`.replace(
+      /[<>:"/\\|?*]/g,
+      "",
+    );
 
-  const outputPath = path.join(storagePath, "%(title)s.%(ext)s");
+  const isolatedSessionFolder = path.join(
+    downloadBaseDirectory,
+    sessionIdentity,
+  );
+  await fs.mkdir(isolatedSessionFolder, { recursive: true });
 
-  const formatSelection = createFormatSelection(
+  const mediaOutputTemplate = path.join(
+    isolatedSessionFolder,
+    `${sessionIdentity}.%(ext)s`,
+  );
+
+  const selectedFormats = createFormatSelection(
     config.videoFormatId,
     config.audioFormatId,
   );
 
-  if (!formatSelection) {
-    throw new Error("No format selected");
+  if (!selectedFormats) {
+    throw new Error(
+      `Invalid format configuration for: ${config.displayData.title}`,
+    );
   }
 
-  const args = [
+  const ytDlpExecutionArgs = [
     "-f",
-    formatSelection,
+    selectedFormats,
     "-o",
-    outputPath,
+    mediaOutputTemplate,
     "--no-playlist",
+    "--part",
     config.url,
   ];
 
   if (config.subId) {
-    args.push("--write-subs", "--sub-langs", config.subId);
+    ytDlpExecutionArgs.push("--write-subs", "--sub-langs", config.subId);
   }
 
-  return { args, storagePath };
+  return {
+    args: ytDlpExecutionArgs,
+    storagePath: isolatedSessionFolder,
+    filename: sessionIdentity,
+  };
 }
 
 export async function executeDownload(
@@ -188,8 +212,8 @@ export async function* executeDownloadStream(
   logger.info("Starting download stream", { url: config.url });
 
   try {
-    const { args } = await prepareDownload(config);
-
+    const { args, filename, storagePath } = await prepareDownload(config);
+    await saveDownloadSession(storagePath, filename, config);
     yield* runYtDlpStream(args, signal);
 
     yield {
