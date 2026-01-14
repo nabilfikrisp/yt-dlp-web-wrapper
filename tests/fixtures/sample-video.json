@@ -1,0 +1,33 @@
+{
+  "id": "dQw4w9WgXcQ",
+  "title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
+  "thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+  "duration": 213,
+  "uploader": "RickAstleyVEVO",
+  "formats": [
+    {
+      "format_id": "18",
+      "vcodec": "avc1.42001E",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "resolution": "640x360",
+      "filesize": 12000000
+    },
+    {
+      "format_id": "22",
+      "vcodec": "avc1.4D401F",
+      "acodec": "mp4a.40.2",
+      "ext": "mp4",
+      "resolution": "1280x720",
+      "filesize": 35000000
+    },
+    {
+      "format_id": "251",
+      "vcodec": "none",
+      "acodec": "opus",
+      "ext": "webm",
+      "resolution": "audio only",
+      "filesize": 3000000
+    }
+  ]
+}
