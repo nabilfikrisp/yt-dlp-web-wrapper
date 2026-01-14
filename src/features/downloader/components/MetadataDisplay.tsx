@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { ERROR_MESSAGES } from "@/server/utils/error.utils";
-import { APP_CONFIG } from "@/shared/config/app.config";
 import type {
   StreamError,
   StreamIdle,
@@ -15,7 +14,6 @@ import type {
 import { useMetadataManager } from "../hooks/useMetadataManager";
 import type { VideoMetadata } from "../types/video-metadata.types";
 import { formatBitToMB } from "../utils/format.utils";
-import { DirectoryPicker } from "./DirectoryPicker";
 import { DownloadProgress } from "./ui/DownloadProgress";
 import { SelectionBadge } from "./ui/SelectionBadge";
 import { SelectionButton } from "./ui/SelectionButton";
@@ -78,9 +76,6 @@ export function MetadataDisplay({
   >(createIdleState());
 
   const [controller, setController] = useState<AbortController | null>(null);
-  const [downloadPath, setDownloadPath] = useState<string>(
-    APP_CONFIG.DEFAULT_STORAGE_PATH,
-  );
 
   async function streamDownload() {
     if (controller) {
@@ -106,7 +101,6 @@ export function MetadataDisplay({
           audioFormatId: state.selectedAudio?.formatId,
           audioLabel: state.selectedAudioLabel,
           subId: state.selectedSub,
-          downloadPath: downloadPath,
           displayData: {
             title: data.title,
             thumbnail: data.thumbnail,
@@ -132,7 +126,7 @@ export function MetadataDisplay({
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // Keep the last incomplete line
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
@@ -176,7 +170,6 @@ export function MetadataDisplay({
   }
 
   const hasAutoStarted = useRef(false);
-  // biome-ignore lint: autoStart only needs to run on mount when resuming
   useLayoutEffect(() => {
     if (
       autoStart &&
@@ -185,13 +178,6 @@ export function MetadataDisplay({
     ) {
       hasAutoStarted.current = true;
       streamDownload();
-    }
-  }, []);
-
-  useLayoutEffect(() => {
-    const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEY);
-    if (saved) {
-      setDownloadPath(saved);
     }
   }, []);
 
@@ -308,8 +294,6 @@ export function MetadataDisplay({
           </div>
         </div>
 
-        <DirectoryPicker onPathChange={setDownloadPath} value={downloadPath} />
-
         {(streamResult.type === "idle" || streamResult.type === "preparing") &&
           (streamResult.type === "preparing" ? (
             <div className="flex gap-2">
@@ -351,7 +335,6 @@ export function MetadataDisplay({
           onCancel={cancelDownload}
           onRetry={streamDownload}
           onClose={resetStreamResult}
-          downloadPath={downloadPath}
         />
       </div>
     </div>

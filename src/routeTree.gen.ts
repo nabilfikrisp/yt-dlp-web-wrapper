@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStreamDownloadRouteImport } from './routes/api/stream-download'
-import { Route as PlaygroundTimerIndexRouteImport } from './routes/playground/timer/index'
 
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
@@ -29,44 +28,35 @@ const ApiStreamDownloadRoute = ApiStreamDownloadRouteImport.update({
   path: '/api/stream-download',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PlaygroundTimerIndexRoute = PlaygroundTimerIndexRouteImport.update({
-  id: '/playground/timer/',
-  path: '/playground/timer/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/api/stream-download': typeof ApiStreamDownloadRoute
-  '/playground/timer': typeof PlaygroundTimerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/api/stream-download': typeof ApiStreamDownloadRoute
-  '/playground/timer': typeof PlaygroundTimerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/api/stream-download': typeof ApiStreamDownloadRoute
-  '/playground/timer/': typeof PlaygroundTimerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$' | '/api/stream-download' | '/playground/timer'
+  fullPaths: '/' | '/$' | '/api/stream-download'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$' | '/api/stream-download' | '/playground/timer'
-  id: '__root__' | '/' | '/$' | '/api/stream-download' | '/playground/timer/'
+  to: '/' | '/$' | '/api/stream-download'
+  id: '__root__' | '/' | '/$' | '/api/stream-download'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   ApiStreamDownloadRoute: typeof ApiStreamDownloadRoute
-  PlaygroundTimerIndexRoute: typeof PlaygroundTimerIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,13 +82,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStreamDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/playground/timer/': {
-      id: '/playground/timer/'
-      path: '/playground/timer'
-      fullPath: '/playground/timer'
-      preLoaderRoute: typeof PlaygroundTimerIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -106,7 +89,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   ApiStreamDownloadRoute: ApiStreamDownloadRoute,
-  PlaygroundTimerIndexRoute: PlaygroundTimerIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

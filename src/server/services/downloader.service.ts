@@ -11,6 +11,7 @@ import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
 import type {
   ServerResponse,
   StreamError,
+  StreamPreparing,
   StreamProgress,
   StreamSuccess,
 } from "@/shared/types/api.types";
@@ -20,9 +21,11 @@ import {
   handleStreamError,
 } from "../utils/error.utils";
 import { logger } from "../utils/logger.utils";
-import { saveDownloadSession } from "./session.service";
 import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
-import { SESSION_TAG } from "@/shared/config/session.config";
+
+const FIXED_DOWNLOAD_PATH = path.resolve(
+  process.env.DOWNLOAD_PATH || APP_SERVER_CONFIG.STORAGE_PATH,
+);
 
 interface YtDlpFormat {
   format_id: string;
@@ -61,27 +64,14 @@ export function createFormatSelection(
 export async function prepareDownload(
   config: DownloadRequest,
 ): Promise<DownloadPrepared> {
-  const downloadBaseDirectory = path.resolve(
-    config.downloadPath || APP_SERVER_CONFIG.STORAGE_PATH,
-  );
+  const sanitizedTitle = config.displayData.title.replace(/[<>:"/\\|?*]/g, "");
+  const filename =
+    `${sanitizedTitle}_${config.videoLabel || ""}_${config.audioLabel || ""}`.trim();
 
-  // Sanitize OS-unsafe characters
-  const sessionIdentity =
-    `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}_${SESSION_TAG}`.replace(
-      /[<>:"/\\|?*]/g,
-      "",
-    );
+  const storagePath = path.join(FIXED_DOWNLOAD_PATH, filename);
+  await fs.mkdir(storagePath, { recursive: true });
 
-  const isolatedSessionFolder = path.join(
-    downloadBaseDirectory,
-    sessionIdentity,
-  );
-  await fs.mkdir(isolatedSessionFolder, { recursive: true });
-
-  const mediaOutputTemplate = path.join(
-    isolatedSessionFolder,
-    `${sessionIdentity}.%(ext)s`,
-  );
+  const mediaOutputTemplate = path.join(storagePath, `${filename}.%(ext)s`);
 
   const selectedFormats = createFormatSelection(
     config.videoFormatId,
@@ -110,8 +100,8 @@ export async function prepareDownload(
 
   return {
     args: ytDlpExecutionArgs,
-    storagePath: isolatedSessionFolder,
-    filename: sessionIdentity,
+    storagePath,
+    filename,
   };
 }
 
@@ -121,9 +111,9 @@ export async function executeDownload(
   logger.info("Starting download", { url: config.url });
 
   try {
-    const { args, storagePath } = await prepareDownload(config);
+    const { storagePath } = await prepareDownload(config);
 
-    await runYtDlp(args);
+    await runYtDlp(await prepareDownload(config).then((p) => p.args));
 
     logger.info("Download complete", { storagePath });
     return {
@@ -208,17 +198,24 @@ export async function getVideoMetadata(
 export async function* executeDownloadStream(
   config: DownloadRequest,
   signal: AbortSignal,
-): AsyncGenerator<StreamProgress | StreamSuccess | StreamError> {
+): AsyncGenerator<
+  StreamProgress | StreamSuccess | StreamError | StreamPreparing
+> {
   logger.info("Starting download stream", { url: config.url });
 
   try {
-    const { args, filename, storagePath } = await prepareDownload(config);
-    await saveDownloadSession(storagePath, filename, config);
+    const { args, storagePath } = await prepareDownload(config);
+    yield {
+      type: "preparing",
+      data: null,
+      raw: "",
+      error: null,
+    };
     yield* runYtDlpStream(args, signal);
 
     yield {
       type: "success",
-      data: "Download finished!",
+      data: `Download saved to: ${storagePath}`,
       raw: "",
       error: null,
     };

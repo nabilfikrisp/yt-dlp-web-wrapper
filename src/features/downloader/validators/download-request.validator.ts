@@ -7,7 +7,6 @@ export const downloadRequestSchema = z.object({
   audioFormatId: z.string().nullable(),
   audioLabel: z.string().nullable(),
   subId: z.string().nullable(),
-  downloadPath: z.string().optional(),
   displayData: z.object({
     title: z.string(),
     thumbnail: z.string(),
@@ -15,7 +14,3 @@ export const downloadRequestSchema = z.object({
 });
 
 export type DownloadRequest = z.infer<typeof downloadRequestSchema>;
-export type DownloadRequestWithSession = DownloadRequest & {
-  isolatedSessionFolder: string;
-  sessionIdentity: string;
-};
