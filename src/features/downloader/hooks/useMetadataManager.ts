@@ -27,7 +27,16 @@ function formatVideoLabel(video?: VideoFormat | null) {
   return `${video.resolution}-${video.ext.toUpperCase()}`;
 }
 
-export function useMetadataManager(data: VideoMetadata) {
+interface UseMetadataManagerProps {
+  initialVideoFormatId?: string | null;
+  initialAudioFormatId?: string | null;
+  initialSubId?: string | null;
+}
+
+export function useMetadataManager(
+  data: VideoMetadata,
+  props?: UseMetadataManagerProps,
+) {
   const sortedVideo = sortByFilesize(data.videoFormats);
   const sortedAudio = sortByFilesize(
     data.audioFormats.map((audio) => ({
@@ -37,18 +46,28 @@ export function useMetadataManager(data: VideoMetadata) {
   );
   const sortedSubs = sortSubtitles(data.subtitles);
 
-  const [selectedVideo, setSelectedVideo] = useState<VideoFormat | null>(
-    sortedVideo[0] || null,
-  );
-  const [selectedAudio, setSelectedAudio] = useState<AudioFormat | null>(
-    sortedAudio[0] || null,
-  );
-  const [selectedSub, setSelectedSub] = useState<string | null>(
+  const initialVideo =
+    sortedVideo.find((f) => f.formatId === props?.initialVideoFormatId) ||
+    sortedVideo[0] ||
+    null;
+  const initialAudio =
+    sortedAudio.find((f) => f.formatId === props?.initialAudioFormatId) ||
+    sortedAudio[0] ||
+    null;
+  const initialSub =
+    props?.initialSubId ||
     sortedSubs.find((s) => !s.isAuto && s.id.toLowerCase().startsWith("en"))
       ?.id ||
-      sortedSubs[0]?.id ||
-      null,
+    sortedSubs[0]?.id ||
+    null;
+
+  const [selectedVideo, setSelectedVideo] = useState<VideoFormat | null>(
+    initialVideo,
   );
+  const [selectedAudio, setSelectedAudio] = useState<AudioFormat | null>(
+    initialAudio,
+  );
+  const [selectedSub, setSelectedSub] = useState<string | null>(initialSub);
 
   const summary = useMemo(() => {
     const v = data.videoFormats.find(

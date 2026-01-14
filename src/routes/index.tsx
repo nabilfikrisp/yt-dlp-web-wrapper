@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MetadataDisplay } from "@/features/downloader/components/MetadataDisplay";
+import { UnfinishedDownloads } from "@/features/downloader/components/UnfinishedDownloads";
 import { VideoURLForm } from "@/features/downloader/components/VideoURLForm";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
+import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
 import {
   getUnfinishedDownloadsAction,
   getVideoMetadataAction,
@@ -22,17 +24,22 @@ export const Route = createFileRoute("/")({
 });
 
 function DownloaderPage() {
-  const { version, unfinishedDownloads } = Route.useLoaderData();
+  const { version, unfinishedDownloads: initialDownloads } =
+    Route.useLoaderData();
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [unfinishedDownloads] = useState<DownloadRequest[]>(initialDownloads);
+  const [currentDownload, setCurrentDownload] =
+    useState<DownloadRequest | null>(null);
 
   const handleReset = () => {
     setMetadata(null);
     setVideoUrl("");
     setError(null);
+    setCurrentDownload(null);
   };
 
   const handleDismissError = () => {
@@ -41,6 +48,28 @@ function DownloaderPage() {
 
   const handleDownloadStateChange = (downloading: boolean) => {
     setIsDownloading(downloading);
+  };
+
+  const handleResume = async (download: DownloadRequest) => {
+    setIsSubmitting(true);
+    setError(null);
+    setCurrentDownload(download);
+
+    const res = await getVideoMetadataAction({ data: { url: download.url } });
+
+    if (!res.success) {
+      setError(res.error);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setMetadata(res.data);
+    setVideoUrl(download.url);
+    setIsSubmitting(false);
+  };
+
+  const handleDelete = (url: string) => {
+    console.log("Delete:", url);
   };
 
   const handleSubmit = async (url: string) => {
@@ -87,20 +116,23 @@ function DownloaderPage() {
         />
 
         {!metadata && unfinishedDownloads.length > 0 && (
-          <>
-            <p className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
-              {unfinishedDownloads.length} unfinished downloads
-            </p>
-            <div className="text-[10px] text-center font-bold text-muted-foreground/40 uppercase tracking-[0.3em]">
-              {unfinishedDownloads.map((d) => d.displayData.title)}
-            </div>
-          </>
+          <UnfinishedDownloads
+            downloads={unfinishedDownloads}
+            onResume={handleResume}
+            onDelete={handleDelete}
+            isSubmitting={isSubmitting}
+            isDownloading={isDownloading}
+          />
         )}
 
         {metadata && (
           <MetadataDisplay
             data={metadata}
             videoUrl={videoUrl}
+            initialVideoFormatId={currentDownload?.videoFormatId}
+            initialAudioFormatId={currentDownload?.audioFormatId}
+            initialSubId={currentDownload?.subId}
+            autoStart={!!currentDownload}
             onDownloadStateChange={handleDownloadStateChange}
           />
         )}

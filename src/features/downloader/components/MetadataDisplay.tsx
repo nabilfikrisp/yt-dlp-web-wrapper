@@ -1,5 +1,5 @@
 import { Download, Languages, Loader, Monitor, Music, X } from "lucide-react";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
@@ -25,15 +25,31 @@ import { VideoHeader } from "./ui/VideoHeader";
 interface MetadataDisplayProps {
   data: VideoMetadata;
   videoUrl: string;
+  initialVideoFormatId?: string | null;
+  initialAudioFormatId?: string | null;
+  initialSubId?: string | null;
+  autoStart?: boolean;
   onDownloadStateChange?: (isDownloading: boolean) => void;
 }
 
 export function MetadataDisplay({
   data,
   videoUrl,
+  initialVideoFormatId,
+  initialAudioFormatId,
+  initialSubId,
+  autoStart,
   onDownloadStateChange,
 }: MetadataDisplayProps) {
-  const { state, actions, data: view } = useMetadataManager(data);
+  const {
+    state,
+    actions,
+    data: view,
+  } = useMetadataManager(data, {
+    initialVideoFormatId,
+    initialAudioFormatId,
+    initialSubId,
+  });
 
   const DOWNLOAD_BUTTON_BASE_CLASS =
     "h-12 rounded-2xl gap-3 shadow-xl shadow-primary/25 font-semibold text-base transition-all duration-200 active:scale-[0.98] hover:shadow-2xl hover:shadow-primary/30 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary relative overflow-hidden group";
@@ -158,6 +174,19 @@ export function MetadataDisplay({
   function resetStreamResult() {
     setStreamResult(createIdleState());
   }
+
+  const hasAutoStarted = useRef(false);
+  // biome-ignore lint: autoStart only needs to run on mount when resuming
+  useLayoutEffect(() => {
+    if (
+      autoStart &&
+      !hasAutoStarted.current &&
+      (state.selectedVideo || state.selectedAudio)
+    ) {
+      hasAutoStarted.current = true;
+      streamDownload();
+    }
+  }, []);
 
   useLayoutEffect(() => {
     const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEY);
