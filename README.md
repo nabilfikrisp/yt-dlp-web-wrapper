@@ -16,32 +16,39 @@ This application performs destructive file system operations (`rm`, `unlink`) an
 
 To preserve the work while protecting the user, this repository has been split:
 
-- **`main` (Current):** A "Safe View" branch. All destructive cleanup logic, shell-based folder pickers, and session-deletion features have been **removed or disabled**.
-- **`unsafe-latest-feature`:** Contains the full implementation, including the automated cleanup and native OS integrations.
+- **`main` (Current):** **Safe View.** All destructive cleanup logic, shell-based folder pickers, and session-removal features have been **removed**.
+- **`unsafe-latest-feature`:** **Full Technical Implementation.** Contains the automated cleanup and native OS integrations.
 - **Warning:** This branch contains the documented security risks (C1-C4) and should be used for educational/reference purposes only.
 
 ---
 
-## Technical Journey & "The Wall"
+## ✅ Safe Features (Available on `main`)
 
-This project started as a simple UI wrapper for `yt-dlp`. However, as the scope moved toward managing local download sessions and automated cleanup, the complexity of **safe OS integration** became the primary focus.
+These features are core to the UI and the yt-dlp integration and are safe for exploration:
 
-The project reached a "sunset" phase when the effort to mitigate OS-level risks (Path Traversal, Command Injection, and Shell Escaping) began to outweigh the utility of the tool.
+- **Format Selection:** Dynamic fetching of video/audio formats with quality and file size estimation.
+- **Real-time Progress:** Live stream processing of `yt-dlp` output to show download percentage and speed in the UI.
+- **Modern Tech Stack:** Implementation of **TanStack Start** with SSR and Type-safe routing.
+- **Metadata Fetching:** Automatic retrieval of video thumbnails, titles, and descriptions before starting a download.
+- **UI/UX:** A clean, responsive dashboard built with **shadcn/ui** and **Tailwind CSS**.
 
-### 🔍 Security Audit (Findings)
+---
 
-Below are the documented risks identified during development that remain unaddressed in this version:
+## 🔍 Security Audit & Technical Debt
 
-#### Critical Severity
+The project reached a "sunset" phase when the complexity of **safe OS integration** began to outweigh the utility of the tool.
 
-- **Path Traversal (C1):** File cleanup routines lack full validation of filenames inside session folders, potentially allowing "escape" via malicious filenames.
-- **Symlink Vulnerability (C2):** Recursive delete operations do not currently distinguish between local files and symlinks.
-- **yt-dlp Command Injection (C4):** Arguments passed to the CLI lack a hardened "jail," posing a risk if malformed URLs are processed.
+### Critical Risks (Identified)
 
-#### Architectural "Unsafe" Features (Moved to separate branch)
+- **Path Traversal (C1):** Cleanup routines lack strict filename validation, potentially allowing "escape" via malicious filenames.
+- **Symlink Vulnerability (C2):** Recursive delete operations do not distinguish between local files and symlinks.
+- **yt-dlp Command Injection (C4):** CLI arguments lack a hardened "jail" separator (`--`), posing a risk if malformed URLs are processed.
 
-- **Native Folder Picking:** Integration with PowerShell, Zenity, and AppleScript involves spawning shell processes. Without strict input sanitization, these are vulnerable to shell injection.
-- **Distributed Session Registry:** The global registry tracks local paths. Corrupting this registry could lead to the app attempting to "clean up" or manage unauthorized system directories.
+### Architectural "Unsafe" Features (Moved to `unsafe` branch)
+
+- **Native Folder Picking:** Spawning shell processes (PowerShell/Zenity/AppleScript) without production-grade input sanitization.
+- **Distributed Session Registry:** A global JSON registry that tracks local paths; corruption of this file could lead to unauthorized system directory management.
+- **Surgical Session Cleanup:** Logic designed to delete `.part` and `.ytdl` files which relies on string-based path joining.
 
 ---
 
@@ -65,6 +72,4 @@ MIT - Provided "as-is" without any warranties.
 
 ### Final Thoughts
 
-This project served as a deep dive into the risks of building local-first web tools. The "Shadow Project" of security (Path Jailing, Argument Sanitization, and Resource Guarding) is the true challenge of system-level software.
-
----
+This project served as a deep dive into the risks of building local-first web tools. The true challenge of system-level software is not the feature itself, but the **Security Infrastructure** (Path Jailing, Argument Sanitization, and Resource Guarding) required to make it safe for others.
