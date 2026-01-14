@@ -1,4 +1,4 @@
 export * from "./directory-picker.service";
-export * from "./downloader.service";
-export * from "./session.service";
-export * from "./yt-dlp.service";
+export * from "./downloader";
+export * from "./session";
+export * from "./yt-dlp";

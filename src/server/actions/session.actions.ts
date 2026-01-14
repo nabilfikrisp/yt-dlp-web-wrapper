@@ -3,7 +3,7 @@ import z from "zod";
 import type { DownloadRequestWithSession } from "@/features/downloader/validators/download-request.validator";
 import type { ServerResponse } from "@/shared/types/api.types";
 import { deleteDownloadSession, getUnfinishedDownloads } from "../services";
-import { logger } from "../utils/logger.utils";
+import { logger } from "../utils/logger";
 
 export const getUnfinishedDownloadsAction = createServerFn({
   method: "GET",

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { ServerResponse } from "@/shared/types/api.types";
 import { openDirectoryDialog } from "../services/directory-picker.service";
-import { logger } from "../utils/logger.utils";
+import { logger } from "../utils/logger";
 
 export const getNativeDirectoryAction = createServerFn({
   method: "GET",

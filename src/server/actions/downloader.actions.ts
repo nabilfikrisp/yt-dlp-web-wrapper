@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
 import { downloadRequestSchema } from "@/features/downloader/validators/download-request.validator";
-import type { ServerResponse } from "@/shared/types/api.types";
 import {
   executeDownload,
   getVideoMetadata,
   getYTVersion,
-} from "../services/downloader.service";
-import { logger } from "../utils/logger.utils";
+} from "@/server/services/downloader";
+import type { ServerResponse } from "@/shared/types/api.types";
+import { logger } from "../utils/logger";
 
 export const getVideoMetadataAction = createServerFn({ method: "POST" })
   .inputValidator(downloadRequestSchema.pick({ url: true }))

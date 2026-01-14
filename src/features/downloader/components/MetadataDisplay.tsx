@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { ERROR_MESSAGES } from "@/server/utils/error.utils";
+import { ERROR_MESSAGES } from "@/server/services/errors/messages";
 import { APP_CONFIG } from "@/shared/config/app.config";
 import type {
   StreamError,
@@ -27,6 +27,7 @@ interface MetadataDisplayProps {
   videoUrl: string;
   initialVideoFormatId?: string | null;
   initialAudioFormatId?: string | null;
+  initialDownloadPath?: string | null;
   initialSubId?: string | null;
   autoStart?: boolean;
   onDownloadStateChange?: (isDownloading: boolean) => void;
@@ -38,6 +39,7 @@ export function MetadataDisplay({
   initialVideoFormatId,
   initialAudioFormatId,
   initialSubId,
+  initialDownloadPath,
   autoStart,
   onDownloadStateChange,
 }: MetadataDisplayProps) {
@@ -106,7 +108,7 @@ export function MetadataDisplay({
           audioFormatId: state.selectedAudio?.formatId,
           audioLabel: state.selectedAudioLabel,
           subId: state.selectedSub,
-          downloadPath: downloadPath,
+          downloadPath: initialDownloadPath || downloadPath,
           displayData: {
             title: data.title,
             thumbnail: data.thumbnail,

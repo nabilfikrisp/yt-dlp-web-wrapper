@@ -2,8 +2,8 @@ import { exec } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { ServerResponse } from "@/shared/types/api.types";
-import { ERROR_MESSAGES } from "../utils/error.utils";
-import { logger } from "../utils/logger.utils";
+import { logger } from "../utils/logger";
+import { ERROR_MESSAGES } from "./errors/messages";
 
 const execAsync = promisify(exec);
 

@@ -1,23 +1,40 @@
 import { spawn } from "node:child_process";
-import { APP_CONFIG } from "@/shared/config/app.config";
 import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
+import { isRateLimitMessage, parseProgressLine } from "./progress.parser";
 
-export async function runYtDlp(args: string[]): Promise<string> {
-  const command = APP_SERVER_CONFIG.YTDLP_COMMAND;
+export type StreamProgressEvent = {
+  type: "progress";
+  data: number;
+  raw: string;
+  error: null;
+};
 
+export type StreamErrorEvent = {
+  type: "error";
+  data: null;
+  raw: string;
+  error: string;
+};
+
+export type StreamEvent = StreamProgressEvent | StreamErrorEvent;
+
+const YT_DLP_COMMAND = APP_SERVER_CONFIG.YTDLP_COMMAND;
+
+export async function fetchYtDlpOutput(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const ls = spawn(command, args);
+    const process = spawn(YT_DLP_COMMAND, args);
     let stdout = "";
     let stderr = "";
 
-    ls.stdout.on("data", (data) => {
+    process.stdout.on("data", (data) => {
       stdout += data.toString();
     });
-    ls.stderr.on("data", (data) => {
+
+    process.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    ls.on("close", (code) => {
+    process.on("close", (code) => {
       if (code === 0) {
         resolve(stdout.trim());
       } else {
@@ -25,44 +42,29 @@ export async function runYtDlp(args: string[]): Promise<string> {
       }
     });
 
-    ls.on("error", (err) => {
+    process.on("error", (err) => {
       reject(new Error(`Failed to start yt-dlp: ${err.message}`));
     });
   });
 }
 
-export async function* runYtDlpStream(
+export async function* streamYtDlpProgress(
   args: string[],
   signal: AbortSignal,
-): AsyncGenerator<
-  | {
-      type: "progress";
-      data: number;
-      raw: string;
-      error: null;
-    }
-  | {
-      type: "error";
-      data: null;
-      raw: string;
-      error: string;
-    }
-> {
-  const command = APP_SERVER_CONFIG.YTDLP_COMMAND;
-
+): AsyncGenerator<StreamEvent> {
   const finalArgs = ["--newline", ...args];
-  const ls = spawn(command, finalArgs);
+  const process = spawn(YT_DLP_COMMAND, finalArgs);
 
   const closePromise = new Promise<number | null>((resolve) => {
-    ls.on("close", (code) => resolve(code));
+    process.on("close", (code) => resolve(code));
   });
 
   const abortHandler = () => {
-    ls.kill();
+    process.kill();
   };
 
   if (signal.aborted) {
-    ls.kill();
+    process.kill();
     signal.removeEventListener("abort", abortHandler);
     await closePromise;
     const error = new Error("Download cancelled") as Error & { name: string };
@@ -73,40 +75,39 @@ export async function* runYtDlpStream(
   signal.addEventListener("abort", abortHandler);
 
   const decoder = new TextDecoder();
-
-  let errorOutput = "";
-  ls.stderr.on("data", (data) => {
-    errorOutput += decoder.decode(data);
-  });
-
+  let stderrOutput = "";
   let wasAborted = false;
 
+  process.stderr.on("data", (data) => {
+    stderrOutput += decoder.decode(data);
+  });
+
   try {
-    for await (const chunk of ls.stdout) {
+    for await (const chunk of process.stdout) {
       if (signal.aborted) {
         wasAborted = true;
         break;
       }
 
       const line = decoder.decode(chunk);
-      const match = line.match(/(\d+\.\d+)%/);
+      const progress = parseProgressLine(line);
 
-      if (match) {
+      if (progress) {
         yield {
           type: "progress",
-          data: parseFloat(match[1]),
-          raw: line.trim(),
+          data: progress.percentage,
+          raw: progress.raw,
           error: null,
         };
       }
 
-      if (errorOutput.includes(APP_CONFIG.RATE_LIMIT_ERROR)) {
-        ls.kill();
+      if (isRateLimitMessage(stderrOutput)) {
+        process.kill();
         throw new Error("429");
       }
     }
   } finally {
-    ls.kill();
+    process.kill();
   }
 
   const exitCode = await closePromise;
@@ -118,7 +119,10 @@ export async function* runYtDlpStream(
     throw error;
   }
 
-  if (exitCode !== 0 && !errorOutput.includes(APP_CONFIG.RATE_LIMIT_ERROR)) {
-    throw new Error(errorOutput || `yt-dlp failed with code ${exitCode}`);
+  const hasRateLimit = isRateLimitMessage(stderrOutput);
+  const hasNonZeroExit = exitCode !== 0;
+
+  if (hasNonZeroExit && !hasRateLimit) {
+    throw new Error(stderrOutput || `yt-dlp failed with code ${exitCode}`);
   }
 }

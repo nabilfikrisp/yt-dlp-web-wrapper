@@ -1,13 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type {
-  AudioFormat,
-  Subtitle,
-  VideoFormat,
-  VideoMetadata,
-} from "@/features/downloader/types/video-metadata.types";
+import type { VideoMetadata } from "@/features/downloader/types/video-metadata.types";
 import type { DownloadRequest } from "@/features/downloader/validators/download-request.validator";
+import { logger } from "@/server/utils/logger";
 import { APP_SERVER_CONFIG } from "@/shared/config/app-server.config";
+import { SESSION_TAG } from "@/shared/config/session.config";
 import type {
   ServerResponse,
   StreamError,
@@ -15,43 +12,16 @@ import type {
   StreamSuccess,
 } from "@/shared/types/api.types";
 import {
-  handleDownloadError,
-  handleServerError,
-  handleStreamError,
-} from "../utils/error.utils";
-import { logger } from "../utils/logger.utils";
-import { saveDownloadSession } from "./session.service";
-import { runYtDlp, runYtDlpStream } from "./yt-dlp.service";
-import { SESSION_TAG } from "@/shared/config/session.config";
+  toDownloadErrorResponse,
+  toServerErrorResponse,
+  toStreamError,
+} from "../errors";
+import { saveDownloadSession } from "../session";
+import { fetchYtDlpOutput, streamYtDlpProgress } from "../yt-dlp";
+import { transformYtDlpJsonToMetadata } from "./metadata.parser";
+import type { DownloadPrepared } from "./types";
 
-interface YtDlpFormat {
-  format_id: string;
-  vcodec: string;
-  acodec: string;
-  resolution?: string;
-  format_note?: string;
-  ext: string;
-  filesize?: number;
-  filesize_approx?: number;
-}
-
-interface YtDlpRawJson {
-  title?: string;
-  thumbnail?: string;
-  duration?: number;
-  uploader?: string;
-  subtitles?: Record<string, unknown>;
-  automatic_captions?: Record<string, unknown>;
-  formats?: YtDlpFormat[];
-}
-
-interface DownloadPrepared {
-  args: string[];
-  storagePath: string;
-  filename: string;
-}
-
-export function createFormatSelection(
+export function buildYtDlpFormatString(
   videoFormatId: string | null,
   audioFormatId: string | null,
 ): string {
@@ -65,7 +35,6 @@ export async function prepareDownload(
     config.downloadPath || APP_SERVER_CONFIG.STORAGE_PATH,
   );
 
-  // Sanitize OS-unsafe characters
   const sessionIdentity =
     `${config.displayData.title}_${config.videoLabel}_${config.audioLabel}_${SESSION_TAG}`.replace(
       /[<>:"/\\|?*]/g,
@@ -83,7 +52,7 @@ export async function prepareDownload(
     `${sessionIdentity}.%(ext)s`,
   );
 
-  const selectedFormats = createFormatSelection(
+  const selectedFormats = buildYtDlpFormatString(
     config.videoFormatId,
     config.audioFormatId,
   );
@@ -123,7 +92,7 @@ export async function executeDownload(
   try {
     const { args, storagePath } = await prepareDownload(config);
 
-    await runYtDlp(args);
+    await fetchYtDlpOutput(args);
 
     logger.info("Download complete", { storagePath });
     return {
@@ -132,50 +101,8 @@ export async function executeDownload(
       error: null,
     };
   } catch (error) {
-    return handleDownloadError(error);
+    return toDownloadErrorResponse(error);
   }
-}
-
-export function parseYtDlpJson(rawJson: string): VideoMetadata {
-  const json: YtDlpRawJson = JSON.parse(rawJson);
-
-  const manualSubs = json.subtitles ? Object.keys(json.subtitles) : [];
-  const autoSubs = json.automatic_captions
-    ? Object.keys(json.automatic_captions)
-    : [];
-
-  const allSubtitles: Subtitle[] = [
-    ...manualSubs.map((id) => ({ id, isAuto: false })),
-    ...autoSubs.map((id) => ({ id, isAuto: true })),
-  ];
-
-  const videoFormats: VideoFormat[] = (json.formats ?? [])
-    .filter((f) => f.vcodec !== "none" && f.acodec === "none")
-    .map((f) => ({
-      formatId: f.format_id,
-      resolution: f.resolution || f.format_note || "Unknown",
-      ext: f.ext,
-      filesize: f.filesize || f.filesize_approx,
-    }));
-
-  const audioFormats: AudioFormat[] = (json.formats ?? [])
-    .filter((f) => f.acodec !== "none" && f.vcodec === "none")
-    .map((f) => ({
-      formatId: f.format_id,
-      resolution: f.format_note || "audio",
-      ext: f.ext,
-      filesize: f.filesize || f.filesize_approx,
-    }));
-
-  return {
-    title: json.title ?? "Unknown Video",
-    thumbnail: json.thumbnail ?? "",
-    duration: json.duration,
-    channel: json.uploader,
-    subtitles: allSubtitles,
-    videoFormats,
-    audioFormats,
-  };
 }
 
 export async function getVideoMetadata(
@@ -184,14 +111,14 @@ export async function getVideoMetadata(
   logger.info("Fetching video metadata", { url });
 
   try {
-    const result = await runYtDlp([
+    const result = await fetchYtDlpOutput([
       "--dump-json",
       "--skip-download",
       "--no-playlist",
       url,
     ]);
 
-    const metadata = parseYtDlpJson(result);
+    const metadata = transformYtDlpJsonToMetadata(result);
 
     logger.info("Success fetching metadata");
 
@@ -201,7 +128,7 @@ export async function getVideoMetadata(
       error: null,
     };
   } catch (error: unknown) {
-    return handleServerError(error);
+    return toServerErrorResponse(error);
   }
 }
 
@@ -214,7 +141,7 @@ export async function* executeDownloadStream(
   try {
     const { args, filename, storagePath } = await prepareDownload(config);
     await saveDownloadSession(storagePath, filename, config);
-    yield* runYtDlpStream(args, signal);
+    yield* streamYtDlpProgress(args, signal);
 
     yield {
       type: "success",
@@ -225,7 +152,7 @@ export async function* executeDownloadStream(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    const streamError = handleStreamError(error, !!config.subId);
+    const streamError = toStreamError(error, !!config.subId);
     if (streamError) {
       yield streamError;
       return;
@@ -239,7 +166,7 @@ export async function getYTVersion(): Promise<ServerResponse<string>> {
   logger.info("Checking yt-dlp version");
 
   try {
-    const version = await runYtDlp(["--version"]);
+    const version = await fetchYtDlpOutput(["--version"]);
 
     logger.info("Success", { version });
 
@@ -249,6 +176,6 @@ export async function getYTVersion(): Promise<ServerResponse<string>> {
       error: null,
     };
   } catch (error: unknown) {
-    return handleServerError(error);
+    return toServerErrorResponse(error);
   }
 }
