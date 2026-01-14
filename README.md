@@ -38,6 +38,14 @@ These features are core to the UI and the yt-dlp integration and are safe for ex
 
 The project reached a "sunset" phase when the complexity of **safe OS integration** began to outweigh the utility of the tool.
 
+### 👤 Design Scope: Personal Use Only
+
+By design, this application was built for **single-user, local self-hosting**.
+
+- It lacks any form of Authentication or Authorization (AuthN/AuthZ).
+- It assumes the user running the web interface has the same permissions as the user who started the server.
+- **Exposure to the open internet is strictly prohibited** as it would grant unauthenticated remote access to your system's shell and file system via the identified C1-C4 vulnerabilities.
+
 ### Critical Risks (Identified)
 
 - **Path Traversal (C1):** Cleanup routines lack strict filename validation, potentially allowing "escape" via malicious filenames.
